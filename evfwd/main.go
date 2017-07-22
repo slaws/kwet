@@ -25,11 +25,13 @@ import (
 
 var nc *nats.Conn
 
+// ClusterEvent is a message used by kwet
 type ClusterEvent struct {
 	Source  string        `json:"source"`
 	Message SimpleMessage `json:"message"`
 }
 
+// SimpleMessage is a more simple version of v1.Event
 type SimpleMessage struct {
 	Count     int32  `json:"count"`
 	Message   string `json:"message"`
@@ -47,12 +49,14 @@ func homeDir() string {
 	return os.Getenv("USERPROFILE") // windows
 }
 
+// Controller allows to track events
 type Controller struct {
 	indexer  cache.Indexer
 	queue    workqueue.RateLimitingInterface
 	informer cache.Controller
 }
 
+// NewController creates a Controller
 func NewController(queue workqueue.RateLimitingInterface, indexer cache.Indexer, informer cache.Controller) *Controller {
 	return &Controller{
 		informer: informer,
@@ -82,8 +86,19 @@ func makeMessage(evt v1.Event) []byte {
 
 func main() {
 	var err error
+	var kubeconfig *string
+
+	natsURL := flag.String("s", "nats://nats:4222", "NATS server URL ( default: nats://nats:4222 )")
+	if home := homeDir(); home != "" {
+		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+	} else {
+		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+	}
+	flag.Parse()
+
 	log.Info("Starting kwet Event Forwarder...")
-	nc, err = NatsConnect()
+	// "nats://nats.svc.k8s:4222"
+	nc, err = NatsConnect(*natsURL)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -92,13 +107,6 @@ func main() {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		log.Info("Not in cluster... trying kubeconfig")
-		var kubeconfig *string
-		if home := homeDir(); home != "" {
-			kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-		} else {
-			kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-		}
-		flag.Parse()
 
 		// use the current context in kubeconfig
 		config, err = clientcmd.BuildConfigFromFlags("", *kubeconfig)
