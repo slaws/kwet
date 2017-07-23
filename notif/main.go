@@ -8,12 +8,12 @@ import (
 	"runtime"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/viper"
 
 	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
 	"github.com/slaws/kwet/lib"
-	b "github.com/slaws/kwet/notif/backends"
-	"github.com/spf13/viper"
+	"github.com/slaws/kwet/notif/backends"
 )
 
 var nc *nats.Conn
@@ -36,7 +36,7 @@ func main() {
 	if !config.IsSet("provider") {
 		log.Error("No provider specified. Exiting.")
 	}
-	provider, err := b.SetupNotifier(config)
+	provider, err := backends.SetupNotifier(config)
 	if err != nil {
 		log.Errorf("Unable to configure notifier : %s", err)
 	}
@@ -46,7 +46,7 @@ func main() {
 	})
 
 	log.Info("Starting kwet Notifier...")
-	b.ListNotifier()
+	backends.ListNotifier()
 	nc, err := lib.NatsConnect(*natsURL)
 	if err != nil {
 		log.Fatal(err)
