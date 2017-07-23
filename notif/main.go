@@ -19,18 +19,18 @@ import (
 var nc *nats.Conn
 
 func main() {
-	natsURL := flag.String("s", "nats://nats:4222", "NATS server URL ( default: nats://nats:4222 )")
-	notifyQueue := flag.String("q", "notify", "Queue to subscribe to ( default : notify )")
-	configFile := flag.String("c", "/etc/kwet-notif.json", "Config file, valid format are json, yaml, toml and hcl (default: /tmp/foo.json)")
-
+	natsURL := flag.String("s", "nats://nats:4222", "NATS server URL")
+	notifyQueue := flag.String("q", "notify", "Queue to subscribe to")
+	c := flag.String("c", "/etc/kwet-notif.json", "Config file, valid format are json, yaml, toml and hcl")
 	flag.Parse()
+	configFile := *c
 	config := viper.New()
 	// config.SetConfigName("foo")
 	// config.AddConfigPath("/tmp/")
-	config.SetConfigFile(*configFile)
+	config.SetConfigFile(configFile)
 	err := config.ReadInConfig()
 	if err != nil {
-		log.Error("Config file not found...")
+		log.Errorf("Config file not found...: %s", err)
 		os.Exit(-1)
 	}
 	if !config.IsSet("provider") {
