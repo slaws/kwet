@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"../../lib"
+	"github.com/slaws/kwet/lib"
 	"github.com/spf13/viper"
 )
 

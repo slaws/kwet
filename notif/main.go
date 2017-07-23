@@ -9,10 +9,10 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
-	"../lib"
-	b "./backends"
 	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
+	"github.com/slaws/kwet/lib"
+	b "github.com/slaws/kwet/notif/backends"
 	"github.com/spf13/viper"
 )
 

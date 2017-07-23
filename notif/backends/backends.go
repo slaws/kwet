@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"../../lib"
 	log "github.com/sirupsen/logrus"
+	"github.com/slaws/kwet/lib"
 	"github.com/spf13/viper"
 )
 
