@@ -8,6 +8,7 @@ import (
 	"runtime"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
 	nats "github.com/nats-io/go-nats"
@@ -17,16 +18,18 @@ import (
 )
 
 var nc *nats.Conn
+var debug bool
 
 func main() {
-	natsURL := flag.String("s", "nats://nats:4222", "NATS server URL")
-	notifyQueue := flag.String("q", "notify", "Queue to subscribe to")
-	c := flag.String("c", "/etc/kwet-notif.json", "Config file, valid format are json, yaml, toml and hcl")
-	flag.Parse()
+	natsURL := pflag.StringP("nats", "s", "nats://nats:4222", "NATS server URL")
+	notifyQueue := pflag.StringP("queue", "q", "notify", "Queue to subscribe to")
+	c := pflag.StringP("config", "c", "/etc/kwet-notif.json", "Config file, valid format are json, yaml, toml and hcl")
+	pflag.BoolVarP(&debug, "debug", "d", false, "Enable debugging")
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.Parse()
 	configFile := *c
 	config := viper.New()
-	// config.SetConfigName("foo")
-	// config.AddConfigPath("/tmp/")
+
 	config.SetConfigFile(configFile)
 	err := config.ReadInConfig()
 	if err != nil {
@@ -53,15 +56,24 @@ func main() {
 	}
 	nc.Subscribe(*notifyQueue, func(msg *nats.Msg) {
 		var smsg lib.ClusterEvent
+		if debug {
+			log.Infof("Message received from [%s] : %s", *notifyQueue, string(msg.Data))
+		}
 		err := json.Unmarshal(msg.Data, &smsg)
 		if err != nil || smsg.Source == "" || smsg.Message == "" {
-			provider.Send(lib.ClusterEvent{
+			err = provider.Send(lib.ClusterEvent{
 				Source:  "kwet-notif",
 				Message: fmt.Sprintf("Malformed message received.\n```%+v```", string(msg.Data)),
 			})
+			if err != nil {
+				log.Errorf("Error while sending notification : %s", err)
+			}
 			return
 		}
-		provider.Send(smsg)
+		err = provider.Send(smsg)
+		if err != nil {
+			log.Errorf("Error while sending notification : %s", err)
+		}
 
 	})
 
