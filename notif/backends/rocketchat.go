@@ -44,7 +44,7 @@ func (rc *RocketChat) Send(message lib.ClusterEvent) error {
 		Text: fmt.Sprintf("Notification from %s", message.Source),
 		Attachments: []attachment{
 			attachment{
-				Text: message.Message,
+				Text: message.Message.(string),
 			},
 		},
 	}
