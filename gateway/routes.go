@@ -19,21 +19,9 @@ var routes = Routes{
 		Index,
 	},
 	Route{
-		"TodoIndex",
-		"GET",
-		"/todos",
-		TodoIndex,
-	},
-	Route{
-		"QList",
-		"GET",
-		"/q",
-		ListQueue,
-	},
-	Route{
 		"AddEvent",
 		"POST",
-		"/event",
+		"/event/{application}",
 		PostEvent,
 	},
 }

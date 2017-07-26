@@ -1,27 +1,33 @@
 package main
 
 import (
-	"fmt"
+	"flag"
 	"net/http"
 
-	nats "github.com/nats-io/go-nats-streaming"
+	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
+	"github.com/slaws/kwet/lib"
+	"github.com/spf13/pflag"
 )
 
-var nc nats.Conn
+var nc *nats.Conn
 
 func main() {
+	var err error
+	natsURL := pflag.StringP("nats", "s", "nats://nats:4222", "NATS server URL")
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.Parse()
 	log.Info("Starting kwet...")
 
 	router := NewRouter()
-	nc, err := NatsConnect("test-cluster", "1")
+	//	nc, err := NatsConnect("test-cluster", "1")
+	nc, err = lib.NatsConnect(*natsURL)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	nc.QueueSubscribe("foo", "coin", func(m *nats.Msg) {
-		fmt.Printf("Received a message: %s\n", string(m.Data))
-	}, nats.DeliverAllAvailable(), nats.DurableName("testprog"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }

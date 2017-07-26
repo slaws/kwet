@@ -2,48 +2,33 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
-	nats "github.com/nats-io/go-nats-streaming"
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
+	"github.com/slaws/kwet/lib"
 )
 
-type Event struct {
-	Source      string `json:"source"`
-	Message     string `json:"message"`
-	Destination string `json:"destination"`
-}
-
-func NatsConnect(cluster, clientID string) (nats.Conn, error) {
-	var err error
-	nc, err = nats.Connect(cluster, clientID, nats.NatsURL("nats://nats.svc.k8s:4222"))
-	if err != nil {
-		log.Errorf("Error while connecting to nats url (%s) : %s", "nats://nats.svc.k8s:4222", err)
-		return nil, err
-	}
-	return nc, nil
-}
-
-func ListQueue(w http.ResponseWriter, r *http.Request) {
-	log.Info("Listing...")
-	err := nc.Publish("foo", []byte("Someone is listing..."))
-	if err != nil {
-		log.Error(err)
-	}
-}
+// func NatsConnect(cluster, clientID string) (nats.Conn, error) {
+// 	var err error
+// 	nc, err = nats.Connect(cluster, clientID, nats.NatsURL("nats://nats.svc.k8s:4222"))
+// 	if err != nil {
+// 		log.Errorf("Error while connecting to nats url (%s) : %s", "nats://nats.svc.k8s:4222", err)
+// 		return nil, err
+// 	}
+// 	return nc, nil
+// }
 
 func PostEvent(w http.ResponseWriter, r *http.Request) {
-	parser := json.NewDecoder(r.Body)
-	var e Event
-	err := parser.Decode(&e)
+	vars := mux.Vars(r)
+	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Error(err)
+		log.Errorf("Error while reading body : %s", err)
+		return
 	}
-	msg, err := json.Marshal(e)
-	if err != nil {
-		log.Error(err)
-	}
-	err = nc.Publish(e.Destination, msg)
+	msg, err := json.Marshal(lib.ClusterEvent{Source: vars["application"], Message: string(body), Tags: []string{"application", "gateway"}})
+	err = nc.Publish(vars["application"], msg)
 	if err != nil {
 		log.Error(err)
 	}
