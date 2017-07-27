@@ -26,12 +26,6 @@ import (
 
 var nc *nats.Conn
 
-// // ClusterEvent is a message used by kwet
-// type ClusterEvent struct {
-// 	Source  string        `json:"source"`
-// 	Message SimpleMessage `json:"message"`
-// }
-
 // SimpleMessage is a more simple version of v1.Event
 type SimpleMessage struct {
 	Count     int32  `json:"count"`
