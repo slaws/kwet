@@ -21,15 +21,16 @@ import (
 
 	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
+	"github.com/slaws/kwet/lib"
 )
 
 var nc *nats.Conn
 
-// ClusterEvent is a message used by kwet
-type ClusterEvent struct {
-	Source  string        `json:"source"`
-	Message SimpleMessage `json:"message"`
-}
+// // ClusterEvent is a message used by kwet
+// type ClusterEvent struct {
+// 	Source  string        `json:"source"`
+// 	Message SimpleMessage `json:"message"`
+// }
 
 // SimpleMessage is a more simple version of v1.Event
 type SimpleMessage struct {
@@ -66,7 +67,7 @@ func NewController(queue workqueue.RateLimitingInterface, indexer cache.Indexer,
 }
 
 func makeMessage(evt v1.Event) []byte {
-	m := SimpleMessage{
+	m, err := json.Marshal(SimpleMessage{
 		Count:     evt.Count,
 		Message:   evt.Message,
 		ObjectRef: fmt.Sprintf("%s/%s", evt.InvolvedObject.Namespace, evt.InvolvedObject.Name),
@@ -74,9 +75,13 @@ func makeMessage(evt v1.Event) []byte {
 		Source:    fmt.Sprintf("%s/%s", evt.Source.Component, evt.Source.Host),
 		FirstSeen: fmt.Sprintf("%d", evt.FirstTimestamp.Unix()),
 		LastSeen:  fmt.Sprintf("%d", evt.LastTimestamp.Unix()),
+	})
+	if err != nil {
+		log.Errorf("%s", err)
+		return nil
 	}
 
-	message, err := json.Marshal(ClusterEvent{Source: "kubernetes", Message: m})
+	message, err := json.Marshal(lib.ClusterEvent{Source: "kubernetes", Message: m, Tags: []string{"application", "kubernetes"}})
 	if err != nil {
 		log.Errorf("%s", err)
 		return nil
@@ -98,7 +103,7 @@ func main() {
 
 	log.Info("Starting kwet Event Forwarder...")
 	// "nats://nats.svc.k8s:4222"
-	nc, err = NatsConnect(*natsURL)
+	nc, err = lib.NatsConnect(*natsURL)
 	if err != nil {
 		log.Fatal(err)
 	}

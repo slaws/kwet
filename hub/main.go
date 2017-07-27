@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"regexp"
 	"runtime"
 
 	"github.com/BurntSushi/toml"
@@ -30,7 +31,7 @@ type rule struct {
 func main() {
 
 	natsURL := pflag.StringP("nats", "s", "nats://nats:4222", "NATS server URL")
-	c := pflag.StringP("config", "c", "/etc/kwet-notif.json", "Config file, valid format are json, yaml, toml and hcl")
+	c := pflag.StringP("config", "c", "/etc/kwet-gateway.toml", "Config file (toml format)")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
@@ -56,8 +57,16 @@ func main() {
 			return
 		}
 
-		tlist := conf.TopicRules["all"]
-		for _, rule := range tlist {
+		var ruleList []rule
+		for key, value := range conf.TopicRules {
+			log.Infof("got key : %s", key)
+			match, _ := regexp.MatchString(key, msg.Subject)
+			if match {
+				ruleList = append(ruleList, value...)
+			}
+		}
+
+		for _, rule := range ruleList {
 			expression, err := govaluate.NewEvaluableExpressionWithFunctions(rule.Condition, functions)
 			if err != nil {
 				log.Warningf("Error while creating condition : %s. Skipping", err)
