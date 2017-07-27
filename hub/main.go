@@ -59,7 +59,6 @@ func main() {
 
 		var ruleList []rule
 		for key, value := range conf.TopicRules {
-			log.Infof("got key : %s", key)
 			match, _ := regexp.MatchString(key, msg.Subject)
 			if match {
 				ruleList = append(ruleList, value...)
