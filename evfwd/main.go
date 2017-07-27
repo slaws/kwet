@@ -19,12 +19,11 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/api"
 
-	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
 	"github.com/slaws/kwet/lib"
 )
 
-var nc *nats.Conn
+//var nc *nats.Conn
 
 // SimpleMessage is a more simple version of v1.Event
 type SimpleMessage struct {
@@ -84,7 +83,7 @@ func makeMessage(evt v1.Event) []byte {
 }
 
 func main() {
-	var err error
+	//var err error
 	var kubeconfig *string
 
 	natsURL := flag.String("s", "nats://nats:4222", "NATS server URL ( default: nats://nats:4222 )")
@@ -97,7 +96,7 @@ func main() {
 
 	log.Info("Starting kwet Event Forwarder...")
 	// "nats://nats.svc.k8s:4222"
-	nc, err = lib.NatsConnect(*natsURL)
+	nc, err := lib.NatsConnect(*natsURL)
 	if err != nil {
 		log.Fatal(err)
 	}
