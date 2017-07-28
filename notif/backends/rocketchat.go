@@ -7,26 +7,27 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/slaws/kwet/lib"
-	"github.com/spf13/viper"
 )
 
-type rcMsg struct {
-	Text        string       `json:"text"`
-	Attachments []attachment `json:"attachments,omitempty"`
+// RocketChat is a config struct
+type RocketChat struct {
+	URL string
 }
 
-type attachment struct {
+type RcMsg struct {
+	Text        string       `json:"text"`
+	Attachments []Attachment `json:"attachments,omitempty"`
+}
+
+type Attachment struct {
 	Title     string `json:"title,omitempty"`
 	TitleLink string `json:"title_link,omitempty"`
 	Text      string `json:"text,omitempty"`
 	ImageURL  string `json:"image_url,omitempty"`
 	Color     string `json:"color,omitempty"`
-}
-
-// RocketChat is a config struct
-type RocketChat struct {
-	URL string
 }
 
 func init() {
@@ -40,13 +41,26 @@ func (rc *RocketChat) GetName() string {
 
 // Send sends a notification
 func (rc *RocketChat) Send(message lib.ClusterEvent) error {
-	smsg := &rcMsg{
-		Text: fmt.Sprintf("Notification from %s", message.Source),
-		Attachments: []attachment{
-			attachment{
-				Text: message.Message.(string),
+	attach := Attachment{}
+	err := json.Unmarshal([]byte(message.Message.(string)), &attach)
+	log.Infof("---> %+v", attach)
+	var smsg RcMsg
+	if err != nil || attach.Title == "" {
+		smsg = RcMsg{
+			Text: fmt.Sprintf("Notification from %s", message.Source),
+			Attachments: []Attachment{
+				Attachment{
+					Text: message.Message.(string),
+				},
 			},
-		},
+		}
+	} else {
+		smsg = RcMsg{
+			Text: fmt.Sprintf("Notification from %s", message.Source),
+			Attachments: []Attachment{
+				attach,
+			},
+		}
 	}
 	m, err := json.Marshal(smsg)
 	if err != nil {
@@ -71,8 +85,8 @@ func (rc *RocketChat) Send(message lib.ClusterEvent) error {
 }
 
 // CreateRocketChat creates a provider
-func CreateRocketChat(conf *viper.Viper) (Notifier, error) {
+func CreateRocketChat(conf lib.Config) (Notifier, error) {
 	return &RocketChat{
-		URL: conf.GetString("rocketchat.url"),
+		URL: conf.Provider.URL,
 	}, nil
 }

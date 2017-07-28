@@ -6,7 +6,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/slaws/kwet/lib"
-	"github.com/spf13/viper"
 )
 
 // Notifier is an interface for medias
@@ -16,7 +15,7 @@ type Notifier interface {
 }
 
 // NotifierFactory creates Notifier
-type NotifierFactory func(conf *viper.Viper) (Notifier, error)
+type NotifierFactory func(conf lib.Config) (Notifier, error)
 
 var backendNotifier = make(map[string]NotifierFactory)
 
@@ -42,10 +41,10 @@ func ListNotifier() {
 }
 
 // SetupNotifier builds a notifier
-func SetupNotifier(conf *viper.Viper) (Notifier, error) {
-	factory, ok := backendNotifier[strings.ToLower(conf.GetString("provider"))]
+func SetupNotifier(conf lib.Config) (Notifier, error) {
+	factory, ok := backendNotifier[strings.ToLower(conf.Provider.Name)]
 	if !ok {
-		return nil, fmt.Errorf("No provider %s declared", strings.ToLower(conf.GetString("provider")))
+		return nil, fmt.Errorf("No provider %s declared", strings.ToLower(conf.Provider.Name))
 	}
 	return factory(conf)
 }
