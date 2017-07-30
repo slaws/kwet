@@ -1,11 +1,29 @@
 package lib
 
+import "time"
+
 // ClusterEvent is a message used by kwet
 type ClusterEvent struct {
 	Source    string      `json:"source"`
 	Message   interface{} `json:"message"`
 	Tags      []string    `json:"tags,omitempty"`
 	Processed bool        `json:"processed"`
+	Host      string      `json:"host,omitempty"`
+	Identity  string      `json:"ident,omitempty"`
+	PID       string      `json:"pid,omitempty"`
+	Priority  string      `json:"pri,omitempty"`
+}
+
+type SyslogMessage struct {
+	Tag       string    `json:"tag"`
+	Priority  string    `json:"pri"`
+	Time      time.Time `json:"time"`
+	Host      string    `json:"host"`
+	Ident     string    `json:"ident"`
+	PID       string    `json:"pid"`
+	MsgID     string    `json:"msgid"`
+	ExtraData string    `json:"extradata"`
+	Message   string    `json:"message"`
 }
 
 type Config struct {
