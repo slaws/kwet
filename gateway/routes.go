@@ -30,4 +30,10 @@ var routes = Routes{
 		"/wevents",
 		SocketEvent,
 	},
+	// Route{
+	// 	"Static",
+	// 	"GET",
+	// 	"/static/",
+	// 	ServeStatic,
+	// },
 }
