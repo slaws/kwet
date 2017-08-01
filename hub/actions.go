@@ -4,36 +4,40 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/Knetic/govaluate"
 	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
 	"github.com/slaws/kwet/lib"
 )
 
-type actionFunc func(lib.ClusterEvent, string, *nats.Conn) error
-
-var actions = map[string]actionFunc{"print": ShowIt, "none": DoNothing, "copy": MoveIt}
-
-// ShowIt shows things
-func ShowIt(evt lib.ClusterEvent, params string, nc *nats.Conn) error {
-	log.Infof("I'm showing that : %s ", params)
-	return nil
-}
-
-// DoNothing does ... well nothing :)
-func DoNothing(evt lib.ClusterEvent, params string, nc *nats.Conn) error {
-	log.Infof("Look ! I'm doing nothing !")
-	return nil
-}
-
-// MoveIt when you like to
-func MoveIt(evt lib.ClusterEvent, params string, nc *nats.Conn) error {
-	log.Infof("Moving event to %s", params)
-	evt.Tags = append(evt.Tags, "Notification")
-	jstr, err := json.Marshal(evt)
-	if err != nil {
-		return fmt.Errorf("Unable to publish message : %s", err)
-	}
-	msg := &nats.Msg{Subject: params, Data: jstr}
-	nc.PublishMsg(msg)
-	return nil
+var actionFunctions = map[string]govaluate.ExpressionFunction{
+	// print prints the message to stdout
+	"print": func(args ...interface{}) (interface{}, error) {
+		message, found := args[0].(string)
+		if found == false {
+			return false, fmt.Errorf("print() expects a string as first argument")
+		}
+		log.Infof("[print] %s", message)
+		return true, nil
+	},
+	// nothing does ... nothing :)
+	"nothing": func(args ...interface{}) (interface{}, error) {
+		return true, nil
+	},
+	// copy copies a message to another queue
+	"copy": func(args ...interface{}) (interface{}, error) {
+		evt := args[0].(lib.ClusterEvent)
+		queue := args[1].(string)
+		evt.Tags = append(evt.Tags, "Notification")
+		jstr, err := json.Marshal(evt)
+		if err != nil {
+			return false, fmt.Errorf("Unable to marshal message : %s", err)
+		}
+		msg := &nats.Msg{Subject: queue, Data: jstr}
+		err = nc.PublishMsg(msg)
+		if err != nil {
+			return false, fmt.Errorf("Unable to publish message to queue %s : %v", queue, err)
+		}
+		return true, nil
+	},
 }

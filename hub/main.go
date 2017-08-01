@@ -5,6 +5,7 @@ import (
 	"flag"
 	"regexp"
 	"runtime"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/Knetic/govaluate"
@@ -16,6 +17,7 @@ import (
 
 // Config defines a configuration
 type Config struct {
+	ListenQueues []string          `toml:"listen_queues,omitempty"`
 	SyslogQueues []string          `toml:"syslog_queues"`
 	TopicRules   map[string][]rule `toml:"rules"`
 }
@@ -28,6 +30,8 @@ type rule struct {
 	Action    string
 	Params    string
 }
+
+var nc *nats.Conn
 
 func processSyslogMessages(message *nats.Msg, conf Config, nc *nats.Conn) {
 	log.Infof("Queue %s is a syslog queue ... using special format..", message.Subject)
@@ -44,7 +48,10 @@ func processSyslogMessages(message *nats.Msg, conf Config, nc *nats.Conn) {
 			log.Warningf("Unable to marshal %+v : %s", listMsg[1], err)
 		}
 
-		_ = json.Unmarshal(msg, &syslogMessages)
+		err = json.Unmarshal(msg, &syslogMessages)
+		if err != nil {
+			log.Warningf("Unable to unmarshal %v : %v", listMsg[1], err)
+		}
 		syslogMessages.Source = "fluent-syslog"
 		syslogMessages.Tags = append(syslogMessages.Tags, "syslog", "fluent")
 		applyRules(syslogMessages, conf, message.Subject, nc)
@@ -89,45 +96,61 @@ func applyRules(evt lib.ClusterEvent, conf Config, source string, nc *nats.Conn)
 		if result == false {
 			continue
 		}
-		log.Infof("When %s, then %s(%s)", rule.Condition, rule.Action, rule.Params)
-		act, found := actions[rule.Action]
-		if found == false {
-			log.Warnf("Action '%s' unknown. Skipping", rule.Action)
+		action, err := govaluate.NewEvaluableExpressionWithFunctions(rule.Action, actionFunctions)
+		if err != nil {
+			log.Warningf("Error while evaluating action : %s. Skipping", err)
 			continue
 		}
-		err = act(evt, rule.Params, nc)
+		result, err = action.Evaluate(params)
 		if err != nil {
-			log.Warningf("err : %s", err)
+			log.Errorf("Error while doing action '%s' : %s. Skipping", rule.Action, err)
+			continue
+		}
+		if result == false {
+			log.Warningf("action '%s' failed: %s. Skipping", rule.Action, err)
+			continue
 		}
 
 	}
 }
 
 func main() {
-
+	var err error
 	natsURL := pflag.StringP("nats", "s", "nats://nats:4222", "NATS server URL")
 	c := pflag.StringP("config", "c", "/etc/kwet-hub.toml", "Config file (toml format)")
+	l := pflag.StringArrayP("syslogqueue", "l", nil, "Queues receiving syslog messages from fluentd")
+	q := pflag.StringArrayP("queue", "q", nil, "Queue to listen on for events")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
 	var conf Config
-	if _, err := toml.DecodeFile(*c, &conf); err != nil {
+	if _, err = toml.DecodeFile(*c, &conf); err != nil {
 		log.Errorf("Error while parsing config file : %s", err)
+	}
+	if len(*q) != 0 {
+		conf.ListenQueues = *q
+	}
+	if len(*l) != 0 {
+		conf.SyslogQueues = *l
 	}
 
 	log.Info("Starting kwet-hub")
-	nc, err := lib.NatsConnect(*natsURL)
+	log.Infof("Listening for events on %s.Syslog Queues : %s", strings.Join(conf.ListenQueues, ","), strings.Join(conf.SyslogQueues, ","))
+	nc, err = lib.NatsConnect(*natsURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	nc.Subscribe("*", func(msg *nats.Msg) {
-		if lib.ContainsString(conf.SyslogQueues, msg.Subject) {
-			processSyslogMessages(msg, conf, nc)
-		} else {
-			processClusterEvent(msg, conf, nc)
-		}
-	})
+	for _, queue := range conf.ListenQueues {
+		nc.Subscribe(queue, func(msg *nats.Msg) {
+			log.Infof("Message for : %s", msg.Subject)
+			if lib.MatchStringInList(conf.SyslogQueues, msg.Subject) {
+				processSyslogMessages(msg, conf, nc)
+			} else {
+				processClusterEvent(msg, conf, nc)
+			}
+		})
+	}
 
 	runtime.Goexit()
 }
