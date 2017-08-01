@@ -24,4 +24,10 @@ var routes = Routes{
 		"/event/{application}",
 		PostEvent,
 	},
+	Route{
+		"WS",
+		"GET",
+		"/wevents",
+		SocketEvent,
+	},
 }
