@@ -17,16 +17,7 @@ type msg struct {
 	message string
 }
 
-// func NatsConnect(cluster, clientID string) (nats.Conn, error) {
-// 	var err error
-// 	nc, err = nats.Connect(cluster, clientID, nats.NatsURL("nats://nats.svc.k8s:4222"))
-// 	if err != nil {
-// 		log.Errorf("Error while connecting to nats url (%s) : %s", "nats://nats.svc.k8s:4222", err)
-// 		return nil, err
-// 	}
-// 	return nc, nil
-// }
-
+// PostEvent allows to post an event to nats
 func PostEvent(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	body, err := ioutil.ReadAll(r.Body)
@@ -41,6 +32,7 @@ func PostEvent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// SocketEvent send events through a websocket
 func SocketEvent(w http.ResponseWriter, r *http.Request) {
 	// if r.Header.Get("Origin") != "http://"+r.Host {
 	// 	http.Error(w, "Origin not allowed", 403)
@@ -56,27 +48,41 @@ func SocketEvent(w http.ResponseWriter, r *http.Request) {
 	// nc.Subscribe(">", func(msg *nats.Msg) {
 	// 	eventLogs <- string(msg.Data)
 	// })
-	_, err = nc.ChanSubscribe(">", eventLogs)
+	var currentQueue = ">"
+	var sub *nats.Subscription
+	sub, err = nc.ChanSubscribe(">", eventLogs)
 	if err != nil {
 		log.Errorf("Unable to subscribe to '>' : %s", err)
 	}
 
 	go echo(conn, eventLogs)
-}
+	for {
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			log.Println("read:", err)
+			break
+		}
+		if string(message) == currentQueue {
+			continue
+		}
+		if currentQueue == ">" && string(message) == "" {
+			continue
+		}
+		if string(message) == "" {
+			currentQueue = ">"
+		} else {
+			currentQueue = string(message)
+		}
 
-func SocketSpecificEvent(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	var eventLogs = make(chan *nats.Msg, 100)
-	conn, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
-	if err != nil {
-		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
+		err = sub.Unsubscribe()
+		if err != nil {
+			log.Errorf("Unable to unsubscribe from %s", currentQueue)
+		}
+		sub, err = nc.ChanSubscribe(currentQueue, eventLogs)
+		if err != nil {
+			log.Errorf("Unable to subscribe from %s", currentQueue)
+		}
 	}
-	_, err = nc.ChanSubscribe(vars["queue"], eventLogs)
-	if err != nil {
-		log.Errorf("Unable to subscribe to '>' : %s", err)
-	}
-
-	go echo(conn, eventLogs)
 }
 
 func echo(conn *websocket.Conn, c chan *nats.Msg) {

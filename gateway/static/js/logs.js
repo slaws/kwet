@@ -1,5 +1,6 @@
 var scrolling=true;
 var queue="";
+var socket = new WebSocket("ws://"+location.host+"/wevents"+queue);
 
 $(function () {
     var ws;
@@ -10,8 +11,7 @@ $(function () {
         ws = initWS();
     }
     function initWS() {
-        var socket = new WebSocket("ws://"+location.host+"/wevents"+queue),
-            container = $("#container")
+        var container = $("#container")
         socket.onopen = function() {
           $("#socket-status").removeClass("socket-closed");
           $("#socket-status").addClass("socket-open");
@@ -22,12 +22,11 @@ $(function () {
             data = JSON.parse(e.data)
             if(Array.isArray(data)) {
               // Syslog or fluentd errors
-              console.log("array")
               $.each(data,function(i,data){
                 var d = new Date(0);
                 d.setUTCSeconds(data[0]);
                 $('table tbody').append(`<tr>
-                  <td style=" word-wrap: break-word; white-space: normal; " class="mdl-data-table__cell--non-numeric">${d.toJSON()}</td>
+                  <td style=" word-wrap: break-word; white-space: normal; " class="mdl-data-table__cell--non-numeric time" >${d.toJSON()}</td>
                   <td style=" word-wrap: break-word; white-space: normal; " class="mdl-data-table__cell--non-numeric">${data[1].tag}</td>
                   <td style=" word-wrap: break-word; white-space: normal; " class="mdl-data-table__cell--non-numeric">${data[1].host}</td>
                   <td style=" word-wrap: break-word; white-space: normal; " class="mdl-data-table__cell--non-numeric">${data[1].message}</td>
@@ -35,9 +34,17 @@ $(function () {
                   `)
               });
             } else {
-              console.log("ClusterEvent")
+              msg = JSON.parse(data.message)
+              var d = new Date(0);
+              d.setUTCSeconds(msg.lastseen);
+              $('table tbody').append(`<tr>
+                <td style=" word-wrap: break-word; white-space: normal; " class="mdl-data-table__cell--non-numeric time">${d.toJSON()}</td>
+                <td style=" word-wrap: break-word; white-space: normal; " class="mdl-data-table__cell--non-numeric">${data.Subject}</td>
+                <td style=" word-wrap: break-word; white-space: normal; " class="mdl-data-table__cell--non-numeric">${msg.source}</td>
+                <td style=" word-wrap: break-word; white-space: normal; " class="mdl-data-table__cell--non-numeric">${msg.message}</td>
+                </tr>
+                `)
             }
-            console.log(data)
 
           }catch(e){}
           if(scrolling) {
@@ -54,17 +61,41 @@ $(function () {
 });
 function toggleScroll() {
   if(scrolling){
-    console.log("Toggling off...");
     $("#scroll-status").removeClass("scroll-on");
     $("#scroll-status").addClass("scroll-off");
     scrolling=false;
   }else{
-    console.log("Toggling on...");
     $("#scroll-status").removeClass("scroll-off");
     $("#scroll-status").addClass("scroll-on");
     scrolling=true;
   }
 }
 function watchQueue(q){
-  console.log("Now watching queue "+ q);
+  socket.send(q)
+  q.length !== 0 ? $("#title").text(q) : $("#title").text("All queues")
+  $('table tbody tr').slice(0).remove();
+}
+setInterval(function(){
+  $.getJSON("/queues", function(list){
+    var items = ['<a class="mdl-navigation__link" href="#" onclick="watchQueue("")">All queues</a>'];
+    $.each( list, function( key, val ) {
+      items.push('<a class="mdl-navigation__link" href="#" onclick="watchQueue(' + val + ')">'+ val+ '</a>');
+    });
+    $('#queuelist').html(items.join(""))
+  })
+}, 10000);
+
+function toggleTime(){
+    $('.time').toggle();
+}
+
+function fullscreen(){
+  var elem = document.getElementById("main");
+if (elem.requestFullscreen) {
+  elem.requestFullscreen();
+} else if (elem.mozRequestFullScreen) {
+  elem.mozRequestFullScreen();
+} else if (elem.webkitRequestFullscreen) {
+  elem.webkitRequestFullscreen();
+}
 }
