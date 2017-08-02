@@ -11,7 +11,7 @@ import (
 )
 
 var nc *nats.Conn
-var eventLogs = make(chan string, 100)
+var queueLists = make([]string, 0)
 
 func main() {
 	var err error

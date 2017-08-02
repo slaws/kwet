@@ -30,6 +30,18 @@ var routes = Routes{
 		"/wevents",
 		SocketEvent,
 	},
+	Route{
+		"WS",
+		"GET",
+		"/wevents/{queue:[a-zA-Z0-9\\.\\-\\_@]}",
+		SocketSpecificEvent,
+	},
+	Route{
+		"QueueList",
+		"GET",
+		"/queues",
+		ListQueues,
+	},
 	// Route{
 	// 	"Static",
 	// 	"GET",

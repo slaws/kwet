@@ -6,13 +6,14 @@
   <script src="static/js/logs.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
   <link rel="stylesheet" href="static/css/styles.css">
+  <link rel="stylesheet" href="static/css/logs.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
   <div class="demo-layout mdl-layout mdl-js-layout mdl-layout--fixed-drawer mdl-layout--fixed-header">
     <header class="demo-header mdl-layout__header mdl-color--grey-100 mdl-color-text--grey-600">
       <div class="mdl-layout__header-row">
-        <span class="mdl-layout-title">Home</span>
+        <!-- <span class="mdl-layout-title"></span> -->
         <div class="mdl-layout-spacer"></div>
         <div class="mdl-textfield mdl-js-textfield mdl-textfield--expandable">
           <label class="mdl-button mdl-js-button mdl-button--icon" for="search">
@@ -36,7 +37,8 @@
     <div class="demo-drawer mdl-layout__drawer mdl-color--blue-grey-900 mdl-color-text--blue-grey-50">
       <header class="demo-drawer-header">
         <div class="demo-avatar-dropdown">
-          <span>hello@example.com</span>
+          <div style="width:80%" class="left"><i id="socket-status" class="material-icons socket-closed">visibility</i>&nbsp; Websocket status </div><div style="width:19%" class="right"><i id="scroll-status" onClick="toggleScroll()" class="material-icons scroll-on right">file_download</i></div>
+          <!-- <span>hello@example.com </span>
           <div class="mdl-layout-spacer"></div>
           <button id="accbtn" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--icon">
             <i class="material-icons" role="presentation">arrow_drop_down</i>
@@ -47,31 +49,26 @@
             <li class="mdl-menu__item">info@example.com</li>
             <li class="mdl-menu__item"><i class="material-icons">add</i>Add another account...</li>
           </ul>
+        -->
         </div>
       </header>
-      <nav class="demo-navigation mdl-navigation mdl-color--blue-grey-800">
-        <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">home</i>Home</a>
-        <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">inbox</i>Inbox</a>
-        <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">delete</i>Trash</a>
-        <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">report</i>Spam</a>
-        <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">forum</i>Forums</a>
-        <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">flag</i>Updates</a>
-        <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">local_offer</i>Promos</a>
-        <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">shopping_cart</i>Purchases</a>
-        <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">people</i>Social</a>
+      <nav id="queuelist" class="demo-navigation mdl-navigation mdl-color--blue-grey-800">
+        <a class="mdl-navigation__link" href="#" onclick="watchQueue('')">All</a>
+        {{ range $i, $q := . }}
+        <a class="mdl-navigation__link" href="#" onclick="watchQueue('/{{ $q }}')">{{ $q }}</a>
+        {{ end }}
         <div class="mdl-layout-spacer"></div>
-        <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">help_outline</i><span class="visuallyhidden">Help</span></a>
+        <a class="mdl-navigation__link" href=""><span class="visuallyhidden">Help</span></a>
       </nav>
     </div>
     <main class="mdl-layout__content mdl-color--grey-100">
-      Hey123456789azertyuiopsdfghjklmwxcvbn,
-      <div id="container"></div>
-      <table style="width:100%;" class="mdl-data-table mdl-js-data-table mdl-shadow--2dp">
+      <table id="evtLogTable" style="width:100%; word-wrap: break-word; white-space: normal; " class="mdl-data-table mdl-js-data-table mdl-shadow--2dp">
         <thead >
           <tr>
-            <th class="mdl-data-table__cell--non-numeric">Time</th>
-            <th>source</th>
-            <th  style="width:100%;" >message</th>
+            <th style=" word-wrap: break-word; white-space: normal; " class="mdl-data-table__cell--non-numeric">Time</th>
+            <th style=" word-wrap: break-word; white-space: normal; " >queue</th>
+            <th style=" word-wrap: break-word; white-space: normal; " >host</th>
+            <th style="width:100%; word-wrap: break-word; white-space: normal; " >message</th>
           </tr>
         </thead>
         <tbody>

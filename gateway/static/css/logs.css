@@ -1,0 +1,25 @@
+.socket-open {
+  color: rgba(0, 255, 0, 0.8);
+}
+
+.socket-closed {
+  color: rgba(255, 0, 0, 0.8);
+}
+
+.scroll-off {
+  color: rgba(100,100,100,0.8);
+}
+
+.scroll-on {
+  color: rgba(0,255,0,0.8);
+}
+
+.right {
+  float: right;
+
+}
+
+.left {
+  float: left;
+
+}

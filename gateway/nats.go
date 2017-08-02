@@ -47,25 +47,47 @@ func SocketEvent(w http.ResponseWriter, r *http.Request) {
 	// 	log.Errorf("%s Refused", r.RemoteAddr)
 	// 	return
 	// }
+	var eventLogs = make(chan *nats.Msg, 100)
 	conn, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
 	if err != nil {
 		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
 	}
 
-	nc.Subscribe(">", func(msg *nats.Msg) {
-		eventLogs <- string(msg.Data)
-	})
+	// nc.Subscribe(">", func(msg *nats.Msg) {
+	// 	eventLogs <- string(msg.Data)
+	// })
+	_, err = nc.ChanSubscribe(">", eventLogs)
+	if err != nil {
+		log.Errorf("Unable to subscribe to '>' : %s", err)
+	}
 
-	go echo(conn)
+	go echo(conn, eventLogs)
 }
 
-func echo(conn *websocket.Conn) {
+func SocketSpecificEvent(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	var eventLogs = make(chan *nats.Msg, 100)
+	conn, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
+	if err != nil {
+		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
+	}
+	_, err = nc.ChanSubscribe(vars["queue"], eventLogs)
+	if err != nil {
+		log.Errorf("Unable to subscribe to '>' : %s", err)
+	}
+
+	go echo(conn, eventLogs)
+}
+
+func echo(conn *websocket.Conn, c chan *nats.Msg) {
 	m := msg{}
 	for {
-		m.message = <-eventLogs
-
+		nm := <-c
+		if !lib.ContainsString(queueLists, nm.Subject) {
+			queueLists = append(queueLists, nm.Subject)
+		}
+		m.message = string(nm.Data)
 		fmt.Printf("Got message: %#v\n", m)
 		conn.WriteMessage(websocket.TextMessage, []byte(m.message))
-
 	}
 }
