@@ -8,18 +8,40 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type infos struct {
+	NatsStatus bool
+}
+
 // Index welcomes
 func Index(w http.ResponseWriter, r *http.Request) {
+	info := &infos{}
+	if nc.Conn == nil {
+		info.NatsStatus = false
+	} else {
+		info.NatsStatus = (*nc.Conn).IsConnected()
+	}
 	t, err := template.ParseFiles("templates/index.html", "templates/queuelist.html")
 	if err != nil {
 		log.Errorf("Unable to parse index template : %s", err)
 	}
 
-	err = t.Execute(w, queueLists)
+	err = t.Execute(w, info)
 	if err != nil {
 		log.Errorf("Error executing template : %s ", err)
 	}
 
+}
+
+// Settings allows to configure kwet-* modules
+func Settings(w http.ResponseWriter, r *http.Request) {
+	t, err := template.ParseFiles("templates/settings.html")
+	if err != nil {
+		log.Errorf("Unable to parse index template : %s", err)
+	}
+	err = t.Execute(w, nil)
+	if err != nil {
+		log.Errorf("Error executing template : %s ", err)
+	}
 }
 
 // ListQueues lists queues

@@ -99,3 +99,14 @@ if (elem.requestFullscreen) {
   elem.webkitRequestFullscreen();
 }
 }
+
+$(window).load(function () {
+  var notification = document.querySelector('#snack');
+  var data = {
+    message: 'Connection to the bus messaging system failed.',
+    actionHandler: function(event) {},
+    actionText: 'Check Settings',
+    timeout: 100000
+  };
+  notification.MaterialSnackbar.showSnackbar(data);
+});

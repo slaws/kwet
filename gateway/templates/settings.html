@@ -1,0 +1,85 @@
+<html>
+<head>
+  <link rel="stylesheet" href="static/css/material.min.css">
+  <script src="static/js/material.js"></script>
+  <script src="static/js/jquery.min.js"></script>
+  <script src="static/js/settings.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="static/css/styles.css">
+  <link rel="stylesheet" href="static/css/logs.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <div class="demo-layout mdl-layout mdl-js-layout mdl-layout--fixed-drawer mdl-layout--fixed-header">
+    <header class="demo-header mdl-layout__header mdl-color--grey-100 mdl-color-text--grey-600">
+      <div class="mdl-layout__header-row">
+        <span id="title" class="mdl-layout-title">Settings</span>
+        <div class="mdl-layout-spacer"></div>
+        <div class="mdl-textfield mdl-js-textfield mdl-textfield--expandable">
+      </div>
+    </header>
+
+    <div class="demo-drawer mdl-layout__drawer mdl-color--blue-grey-900 mdl-color-text--blue-grey-50">
+      <header class="demo-drawer-header">
+        <div class="demo-avatar-dropdown">
+          <div style="width:80%" class="left">Foobar</div>
+        </div>
+      </header>
+
+        <div class="mdl-layout-spacer"></div>
+        <a class="mdl-navigation__link" href=""><span class="visuallyhidden">Help</span></a>
+      </nav>
+    </div>
+    <main id="main"  class="mdl-layout__content mdl-color--grey-100">
+      <div class="mdl-tabs mdl-js-tabs mdl-layout--fixed-drawer mdl-js-ripple-effect">
+        <div class="mdl-tabs__tab-bar">
+          <a href="#general-panel" class="mdl-tabs__tab is-active">General</a>
+          <a href="#gateway-panel" class="mdl-tabs__tab">Gateway</a>
+          <a href="#lannisters-panel" class="mdl-tabs__tab">Hub</a>
+          <a href="#targaryens-panel" class="mdl-tabs__tab">Notifier</a>
+        </div>
+
+        <div class="mdl-tabs__panel is-active" id="general-panel">
+          <form action="#">
+            <ul>
+            <li>
+              <div class="mdl-textfield mdl-js-textfield">
+                <input class="mdl-textfield__input" type="text" id="nats">
+                <label class="mdl-textfield__label" for="sample1">Nats URL (nats://host:port)</label>
+              </div>
+            </li>
+          </ul>
+          </form>
+        </div>
+        <div class="mdl-tabs__panel" id="gateway-panel">
+          <form action="#">
+            <ul>
+            <li>
+              <div class="mdl-textfield mdl-js-textfield">
+                <input class="mdl-textfield__input" type="text" id="nats">
+                <label class="mdl-textfield__label" for="sample1">Text...</label>
+              </div>
+            </li>
+          </ul>
+          </form>
+        </div>
+        <div class="mdl-tabs__panel" id="lannisters-panel">
+          <ul>
+            <li>Tywin</li>
+            <li>Cersei</li>
+            <li>Jamie</li>
+            <li>Tyrion</li>
+          </ul>
+        </div>
+        <div class="mdl-tabs__panel" id="targaryens-panel">
+          <ul>
+            <li>Viserys</li>
+            <li>Daenerys</li>
+          </ul>
+        </div>
+      </div>
+    </main>
+  </div>
+
+</body>
+</html>

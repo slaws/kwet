@@ -1,6 +1,8 @@
 package lib
 
 import (
+	"fmt"
+
 	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
 )
@@ -12,6 +14,10 @@ type Event struct {
 	Destination string `json:"destination"`
 }
 
+type Nats struct {
+	Conn *nats.Conn
+}
+
 // NatsConnect connects to the specified URL
 func NatsConnect(url string) (*nats.Conn, error) {
 	// var err error
@@ -21,4 +27,17 @@ func NatsConnect(url string) (*nats.Conn, error) {
 		return nil, err
 	}
 	return nc, nil
+}
+
+func (n *Nats) Connect(url string) error {
+	nc, err := nats.Connect(url)
+	if err != nil {
+		return fmt.Errorf("Error while connecting to nats url (%s) : %s", url, err)
+	}
+	n.Conn = nc
+	return nil
+}
+
+func (n *Nats) Disconnect() {
+	n.Conn.Close()
 }

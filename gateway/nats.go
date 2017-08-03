@@ -26,7 +26,7 @@ func PostEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	msg, err := json.Marshal(lib.ClusterEvent{Source: vars["application"], Message: string(body), Tags: []string{"application", "gateway"}})
-	err = nc.Publish(vars["application"], msg)
+	err = nc.Conn.Publish(vars["application"], msg)
 	if err != nil {
 		log.Error(err)
 	}
@@ -40,20 +40,33 @@ func SocketEvent(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 	var eventLogs = make(chan *nats.Msg, 100)
+
 	conn, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
 	if err != nil {
 		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
 	}
 
+	if nc.Conn == nil || !(*nc.Conn).IsConnected() {
+		//		http.Error(w, "No message bus available", http.StatusBadRequest)
+		conn.Close()
+		return
+	}
 	// nc.Subscribe(">", func(msg *nats.Msg) {
 	// 	eventLogs <- string(msg.Data)
 	// })
 	var currentQueue = ">"
 	var sub *nats.Subscription
-	sub, err = nc.ChanSubscribe(">", eventLogs)
+
+	sub, err = (*nc.Conn).ChanSubscribe(">", eventLogs)
 	if err != nil {
 		log.Errorf("Unable to subscribe to '>' : %s", err)
 	}
+	defer func(sub **nats.Subscription) {
+		err := (*sub).Unsubscribe()
+		if err != nil {
+			log.Errorf("Unable to unsubcribe from : %s", err)
+		}
+	}(&sub)
 
 	go echo(conn, eventLogs)
 	for {
@@ -78,7 +91,7 @@ func SocketEvent(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Errorf("Unable to unsubscribe from %s", currentQueue)
 		}
-		sub, err = nc.ChanSubscribe(currentQueue, eventLogs)
+		sub, err = (*nc.Conn).ChanSubscribe(currentQueue, eventLogs)
 		if err != nil {
 			log.Errorf("Unable to subscribe from %s", currentQueue)
 		}

@@ -55,8 +55,10 @@
       </header>
       <nav id="queuelist" class="demo-navigation mdl-navigation mdl-color--blue-grey-800">
         <a class="mdl-navigation__link" href="#" onclick="watchQueue('')">All queues</a>
+        {{ if .NatsStatus }}
         {{ range $i, $q := . }}
         <a class="mdl-navigation__link" href="#" onclick="watchQueue('{{ $q }}')">{{ $q }}</a>
+        {{ end }}
         {{ end }}
         <div class="mdl-layout-spacer"></div>
         <a class="mdl-navigation__link" href=""><span class="visuallyhidden">Help</span></a>
@@ -75,6 +77,10 @@
         <tbody>
         </tbody>
       </table>
+      <div id="snack" aria-live="assertive" aria-atomic="true" aria-relevant="text" class="mdl-snackbar mdl-js-snackbar">
+        <div class="mdl-snackbar__text"></div>
+        <button type="button" class="mdl-snackbar__action"></button>
+      </div>
     </main>
   </div>
 
