@@ -25,7 +25,6 @@
           <div style="width:80%" class="left">Foobar</div>
         </div>
       </header>
-
         <div class="mdl-layout-spacer"></div>
         <a class="mdl-navigation__link" href=""><span class="visuallyhidden">Help</span></a>
       </nav>
@@ -35,43 +34,48 @@
         <div class="mdl-tabs__tab-bar">
           <a href="#general-panel" class="mdl-tabs__tab is-active">General</a>
           <a href="#gateway-panel" class="mdl-tabs__tab">Gateway</a>
-          <a href="#lannisters-panel" class="mdl-tabs__tab">Hub</a>
-          <a href="#targaryens-panel" class="mdl-tabs__tab">Notifier</a>
+          <a href="#hub-panel" class="mdl-tabs__tab">Hub</a>
+          <a href="#notifier-panel" class="mdl-tabs__tab">Notifier</a>
         </div>
 
         <div class="mdl-tabs__panel is-active" id="general-panel">
-          <form action="#">
-            <ul>
-            <li>
-              <div class="mdl-textfield mdl-js-textfield">
-                <input class="mdl-textfield__input" type="text" id="nats">
-                <label class="mdl-textfield__label" for="sample1">Nats URL (nats://host:port)</label>
-              </div>
-            </li>
-          </ul>
+          <form action="/settings/general" method="post">
+            <ul class="demo-list-item mdl-list">
+              <li class="mdl-list__item">
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" pattern="nats://[a-zA-Z0-9\.\-]+:[0-9]+" name="natsurl" value="{{ .Natsurl }}"id="nats">
+                  <label class="mdl-textfield__label" for="nats">Nats URL (nats://host:port)</label>
+                  <span class="mdl-textfield__error">Incorrect pattern!</span>
+                </div>
+              </li>
+            </ul>
+            <button type="submit" class="mdl-button mdl-js-button mdl-js-ripple-effect">
+              Save
+            </button>
           </form>
         </div>
         <div class="mdl-tabs__panel" id="gateway-panel">
-          <form action="#">
-            <ul>
-            <li>
-              <div class="mdl-textfield mdl-js-textfield">
-                <input class="mdl-textfield__input" type="text" id="nats">
-                <label class="mdl-textfield__label" for="sample1">Text...</label>
-              </div>
-            </li>
-          </ul>
+          <pre>Gateway does not have any configuration (yet..)</pre>
+        </div>
+        <div class="mdl-tabs__panel" id="hub-panel">
+
+          <form action="/settings/hub" method="post">
+            <ul class="demo-list-item mdl-list">
+              {{ range $i,$r := .HubRules }}
+              <li class="mdl-list__item">{{ $r }}</li>
+              {{ end }}
+            </ul>
+            <button type="submit" class="mdl-button mdl-js-button mdl-js-ripple-effect">
+              Save
+            </button>
+            <button type="button" onclick="window.location.replace('/addnewhubrule')" class="mdl-button mdl-js-button mdl-js-ripple-effect">
+              Add New Rule
+            </button>
+
           </form>
+
         </div>
-        <div class="mdl-tabs__panel" id="lannisters-panel">
-          <ul>
-            <li>Tywin</li>
-            <li>Cersei</li>
-            <li>Jamie</li>
-            <li>Tyrion</li>
-          </ul>
-        </div>
-        <div class="mdl-tabs__panel" id="targaryens-panel">
+        <div class="mdl-tabs__panel" id="notifier-panel">
           <ul>
             <li>Viserys</li>
             <li>Daenerys</li>

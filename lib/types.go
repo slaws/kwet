@@ -14,6 +14,14 @@ type ClusterEvent struct {
 	Priority  string      `json:"pri,omitempty"`
 }
 
+//HubRule defines a routing rule for kwet-hub
+type HubRule struct {
+	Name      string
+	Condition string
+	Action    string
+	Params    string
+}
+
 type SyslogMessage struct {
 	Tag       string    `json:"tag"`
 	Priority  string    `json:"pri"`

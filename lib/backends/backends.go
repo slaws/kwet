@@ -11,6 +11,8 @@ import (
 type Backend interface {
 	Connect() error
 	GetNATSURL() (string, error)
+	SetNATSURL(string) error
+	GetHubRules() ([]lib.HubRule, error)
 	WatchForNATSChanges(lib.Nats)
 }
 

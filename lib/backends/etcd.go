@@ -2,11 +2,13 @@ package backends
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/slaws/kwet/lib"
 
 	log "github.com/sirupsen/logrus"
@@ -54,9 +56,50 @@ func (e *Etcd) GetNATSURL() (string, error) {
 	return url, nil
 }
 
-func (e *Etcd) get(key string) (string, error) {
+//SetNATSURL gets the url for NATS server
+func (e *Etcd) SetNATSURL(natsurl string) error {
+	err := e.set("/kwet/nats/url", natsurl)
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+	return nil
+}
+
+//GetHubRules gets Hub routing rules
+func (e *Etcd) GetHubRules() ([]lib.HubRule, error) {
+	rules := make([]lib.HubRule, 0)
+	list, err := e.getKV("/kwet/hub/rules", clientv3.WithPrefix())
+	if err != nil {
+		return nil, fmt.Errorf("%s", err)
+	}
+	if len(list) == 0 {
+		return rules, nil
+	}
+	for _, value := range list {
+		var rule lib.HubRule
+		err := json.Unmarshal(value.Value, &rule)
+		if err != nil {
+			log.Errorf("Unable to unmarshal value %s : %s", string(value.Value), err)
+			continue
+		}
+		rules = append(rules, rule)
+	}
+	return rules, nil
+}
+
+func (e *Etcd) set(key, value string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), e.RequestTimeout)
-	resp, err := e.Conn.Get(ctx, key)
+	_, err := e.Conn.Put(ctx, key, value)
+	cancel()
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+	return nil
+}
+
+func (e *Etcd) get(key string, options ...clientv3.OpOption) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), e.RequestTimeout)
+	resp, err := e.Conn.Get(ctx, key, options...)
 	cancel()
 	if err != nil {
 		return "", fmt.Errorf("%s", err)
@@ -64,12 +107,20 @@ func (e *Etcd) get(key string) (string, error) {
 	if len(resp.Kvs) == 0 {
 		return "", fmt.Errorf("Record not found")
 	}
-	// for _, ev := range resp.Kvs {
-	// 	fmt.Printf("%s : %s\n", ev.Key, ev.Value)
-	// }
-	// fmt.Printf("---- end of print kvs ----\n")
-	// return "", fmt.Errorf("Todo")
 	return string(resp.Kvs[0].Value), nil
+}
+
+func (e *Etcd) getKV(key string, options ...clientv3.OpOption) ([]*mvccpb.KeyValue, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), e.RequestTimeout)
+	resp, err := e.Conn.Get(ctx, key, options...)
+	cancel()
+	if err != nil {
+		return nil, fmt.Errorf("%s", err)
+	}
+	if len(resp.Kvs) == 0 {
+		return nil, fmt.Errorf("Record not found")
+	}
+	return resp.Kvs, nil
 }
 
 func (e *Etcd) WatchForNATSChanges(nc lib.Nats) {
@@ -78,7 +129,9 @@ func (e *Etcd) WatchForNATSChanges(nc lib.Nats) {
 		for _, ev := range wresp.Events {
 			if string(ev.Kv.Key) == "/kwet/nats/url" && string(ev.Kv.Key) != nc.Conn.ConnectedUrl() {
 				log.Infof("NATS URL changed in etcd from %s to %s : reconnecting", nc.Conn.ConnectedUrl(), ev.Kv.Value)
-				nc.Disconnect()
+				if nc.Conn != nil && nc.Conn.IsConnected() {
+					nc.Disconnect()
+				}
 				err := nc.Connect(string(ev.Kv.Value))
 				if err != nil {
 					log.Warnf("Unable to connect to NATS at %s", string(ev.Kv.Value))

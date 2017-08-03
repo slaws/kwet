@@ -42,4 +42,22 @@ var routes = Routes{
 		"/settings",
 		Settings,
 	},
+	Route{
+		"UpdateSettings",
+		"POST",
+		"/settings/{module}",
+		UpdateSettings,
+	},
+	Route{
+		"AddNewHubRule",
+		"GET",
+		"/addnewhubrule",
+		AddNewHubRule,
+	},
+	Route{
+		"AddNewHubRule",
+		"POST",
+		"/addnewhubrule",
+		AddNewHubRule,
+	},
 }
