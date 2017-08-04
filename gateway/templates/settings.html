@@ -1,12 +1,14 @@
 <html>
 <head>
-  <link rel="stylesheet" href="static/css/material.min.css">
-  <script src="static/js/material.js"></script>
-  <script src="static/js/jquery.min.js"></script>
-  <script src="static/js/settings.js"></script>
+  <link rel="stylesheet" href="/static/css/material.min.css">
+  <script src="/static/js/material.js"></script>
+  <script src="/static/js/jquery.min.js"></script>
+  <script src="/static/js/dialog-polyfill.js"></script>
+  <script src="/static/js/settings.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-  <link rel="stylesheet" href="static/css/styles.css">
-  <link rel="stylesheet" href="static/css/logs.css">
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="stylesheet" href="/static/css/logs.css">
+  <link rel="stylesheet" href="/static/css/dialog-polyfill.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
@@ -57,21 +59,53 @@
         <div class="mdl-tabs__panel" id="gateway-panel">
           <pre>Gateway does not have any configuration (yet..)</pre>
         </div>
-        <div class="mdl-tabs__panel" id="hub-panel">
 
-          <form action="/settings/hub" method="post">
-            <ul class="demo-list-item mdl-list">
-              {{ range $i,$r := .HubRules }}
-              <li class="mdl-list__item">{{ $r }}</li>
-              {{ end }}
+
+
+        <!--- Hub Panel -->
+        <div class="mdl-tabs__panel" id="hub-panel">
+          <br>
+          <b>General Settings :</b>
+          <form action="#">
+            <ul class="hubsetting-list-item mdl-list">
+              <li class="mdl-list__item mdl-list__item">
+                <div style="width:60%"class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" id="syslogqueues">
+                  <label class="mdl-textfield__label" for="syslogqueues">Syslog Queues separated by comma (in_system.*,myqueue,...)</label>
+                </div>
+              </li>
             </ul>
             <button type="submit" class="mdl-button mdl-js-button mdl-js-ripple-effect">
               Save
             </button>
+          </form>
+          <hr>
+          <b>Rules</b>
+          <form action="/settings/hub" method="post">
+            <ul class="hubrule-list-item mdl-list">
+              {{ range $i,$r := .HubRules }}
+              <li class="mdl-list__item mdl-list__item--three-line">
+                <span class="mdl-list__item-primary-content">
+                  <i class="material-icons mdl-list__item-avatar">open_with</i>
+                  <span><strong>{{ $r.Name }}</strong></span> on <i>{{ $r.Queue}}</i>
+                  <span class="mdl-list__item-text-body">
+                    <div>
+                      <i><b>Condition : </b></i>{{ $r.Condition }}<br>
+                      <i><b>Action : </b></i>{{ $r.Action }}
+                    </div>
+                    <span data-rule="{{ $r.Name }}" style="width:100%" class="spin"></span>
+                  </span>
+                </span>
+                <span class="mdl-list__item-secondary-content">
+                  <a class="mdl-list__item-secondary-action" href="/settings/hub/rule/{{ $r.Name }}"><i class="material-icons">mode_edit</i></a>
+                  <a class="mdl-list__item-secondary-action delete-rule" href="#hub-panel" data-rule="{{$r.Name}}" ><i class="material-icons">delete</i></a>
+                </span>
+              </li>
+              {{ end }}
+            </ul>
             <button type="button" onclick="window.location.replace('/addnewhubrule')" class="mdl-button mdl-js-button mdl-js-ripple-effect">
               Add New Rule
             </button>
-
           </form>
 
         </div>
@@ -82,8 +116,24 @@
           </ul>
         </div>
       </div>
+      <div id="loadingbar" style="width:100%;display:none;" class="mdl-progress mdl-js-progress mdl-progress__indeterminate"></div>
     </main>
   </div>
-
+  <div id="alert-snackbar" class="mdl-js-snackbar mdl-snackbar">
+    <div class="mdl-snackbar__text"></div>
+    <button class="mdl-snackbar__action" type="button"></button>
+  </div>
+  <dialog id="delete-confirm" class="mdl-dialog">
+    <p >Deleting <font id="deleterulename"></font></p>
+    <div class="mdl-dialog__content">
+      <p>
+        Confirm deletion ?
+      </p>
+    </div>
+    <div class="mdl-dialog__actions">
+      <button type="button" class="mdl-button close">Just do it ©</button>
+      <button type="button" class="mdl-button cancel">Hum...nah..</button>
+    </div>
+  </dialog>
 </body>
 </html>

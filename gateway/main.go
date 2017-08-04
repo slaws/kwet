@@ -46,10 +46,7 @@ func main() {
 	if natsURL != "" {
 		err = nc.Connect(natsURL)
 		if err != nil {
-			log.Fatal(err)
-		}
-		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
 		}
 	} else {
 		log.Warnf("No url provided for NATS. Not connected.")

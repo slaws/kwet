@@ -13,6 +13,9 @@ type Backend interface {
 	GetNATSURL() (string, error)
 	SetNATSURL(string) error
 	GetHubRules() ([]lib.HubRule, error)
+	GetSingleHubRule(string) (*lib.HubRule, error)
+	SetHubRule(string, string) error
+	DeleteHubRule(string) error
 	WatchForNATSChanges(lib.Nats)
 }
 

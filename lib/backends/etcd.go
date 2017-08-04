@@ -65,6 +65,15 @@ func (e *Etcd) SetNATSURL(natsurl string) error {
 	return nil
 }
 
+//SetHubRule set a hub rule
+func (e *Etcd) SetHubRule(name, jsonRule string) error {
+	err := e.set(fmt.Sprintf("/kwet/hub/rules/%s", name), jsonRule)
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+	return nil
+}
+
 //GetHubRules gets Hub routing rules
 func (e *Etcd) GetHubRules() ([]lib.HubRule, error) {
 	rules := make([]lib.HubRule, 0)
@@ -87,9 +96,44 @@ func (e *Etcd) GetHubRules() ([]lib.HubRule, error) {
 	return rules, nil
 }
 
+//DeleteHubRule deletes a hub rule
+func (e *Etcd) DeleteHubRule(name string) error {
+	err := e.del(fmt.Sprintf("/kwet/hub/rules/%s", name))
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+	return nil
+}
+
+func (e *Etcd) GetSingleHubRule(key string) (*lib.HubRule, error) {
+	list, err := e.getKV(fmt.Sprintf("/kwet/hub/rules/%s", key))
+	if err != nil {
+		return nil, fmt.Errorf("%s", err)
+	}
+	if len(list) == 0 {
+		return nil, nil
+	}
+	var rule lib.HubRule
+	err = json.Unmarshal(list[0].Value, &rule)
+	if err != nil {
+		log.Errorf("Unable to unmarshal value %s : %s", string(list[0].Value), err)
+	}
+	return &rule, nil
+}
+
 func (e *Etcd) set(key, value string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), e.RequestTimeout)
 	_, err := e.Conn.Put(ctx, key, value)
+	cancel()
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+	return nil
+}
+
+func (e *Etcd) del(key string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), e.RequestTimeout)
+	_, err := e.Conn.Delete(ctx, key)
 	cancel()
 	if err != nil {
 		return fmt.Errorf("%s", err)

@@ -17,6 +17,7 @@ type ClusterEvent struct {
 //HubRule defines a routing rule for kwet-hub
 type HubRule struct {
 	Name      string
+	Queue     string
 	Condition string
 	Action    string
 	Params    string

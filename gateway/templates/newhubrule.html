@@ -1,12 +1,12 @@
 <html>
 <head>
-  <link rel="stylesheet" href="static/css/material.min.css">
-  <script src="static/js/material.js"></script>
-  <script src="static/js/jquery.min.js"></script>
-  <script src="static/js/settings.js"></script>
+  <link rel="stylesheet" href="/static/css/material.min.css">
+  <script src="/static/js/material.js"></script>
+  <script src="/static/js/jquery.min.js"></script>
+  <script src="/static/js/settings.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-  <link rel="stylesheet" href="static/css/styles.css">
-  <link rel="stylesheet" href="static/css/logs.css">
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="stylesheet" href="/static/css/logs.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
@@ -35,19 +35,25 @@
           <ul class="rules-list-item mdl-list">
             <li class="mdl-list__item">
               <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                <input class="mdl-textfield__input" type="text" name="newRuleName" id="newRuleName">
+                <input class="mdl-textfield__input" type="text" name="newRuleName" value="{{ $.Name }}" id="newRuleName">
                 <label class="mdl-textfield__label" for="newRuleName">Rule Name</label>
               </div>
             </li>
             <li class="mdl-list__item">
               <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width:100%" >
-                <input class="mdl-textfield__input" type="text" id="newRuleCondition" name="newRuleCondition" style="width:100%" >
+                <input class="mdl-textfield__input" type="text" id="newRuleCondition" name="newRuleQueue" value="{{ $.Queue }}" style="width:100%" >
+                <label class="mdl-textfield__label" for="newRuleQueue">Rule Queue</label>
+              </div>
+            </li>
+            <li class="mdl-list__item">
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width:100%" >
+                <input class="mdl-textfield__input" type="text" id="newRuleCondition" name="newRuleCondition" value="{{ $.Condition }}" style="width:100%" >
                 <label class="mdl-textfield__label" for="newRuleCondition">Rule Condition</label>
               </div>
             </li>
             <li class="mdl-list__item">
               <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width:100%" >
-                <input class="mdl-textfield__input" type="text" id="newRuleAction" name="newRuleAction" style="width:100%" >
+                <input class="mdl-textfield__input" type="text" id="newRuleAction" name="newRuleAction" value="{{ $.Action }}" style="width:100%" >
                 <label class="mdl-textfield__label" for="newRuleAction">Rule Action</label>
               </div>
             </li>
@@ -55,7 +61,7 @@
           <button type="submit" class="mdl-button mdl-js-button mdl-js-ripple-effect">
             Save
           </button>
-          <button type="button" onclick="window.location.replace('/settings')" class="mdl-button mdl-js-button mdl-js-ripple-effect">
+          <button type="button" onclick="window.location.replace('/settings#hub-panel')" class="mdl-button mdl-js-button mdl-js-ripple-effect">
             Cancel
           </button>
         </form>

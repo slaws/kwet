@@ -60,4 +60,22 @@ var routes = Routes{
 		"/addnewhubrule",
 		AddNewHubRule,
 	},
+	Route{
+		"EditHubRule",
+		"GET",
+		"/settings/hub/rule/{rulename}",
+		EditHubRule,
+	},
+	Route{
+		"UpdateHubRule",
+		"POST",
+		"/settings/hub/rule/{rulename}",
+		EditHubRule,
+	},
+	Route{
+		"DeleteHubRule",
+		"DELETE",
+		"/settings/hub/rule/{rulename}",
+		DeleteHubRule,
+	},
 }
