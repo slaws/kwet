@@ -16,6 +16,16 @@ type Backend interface {
 	GetSingleHubRule(string) (*lib.HubRule, error)
 	SetHubRule(string, string) error
 	DeleteHubRule(string) error
+	GetSyslogQueues() ([]string, error)
+	SetSyslogQueues(string) error
+	GetNotifProvider() (string, error)
+	SetNotifProvider(string) error
+	GetNotifProviderConfig(string) (*lib.ProviderInfo, error)
+	SetNotifProviderConfig(string, string) error
+	GetNotifFormatRules() ([]lib.FormatRule, error)
+	GetSingleNotifFormatRule(string) (*lib.FormatRule, error)
+	SetNotifFormatRule(string, string) error
+	DeleteNotifFormatRule(string) error
 	WatchForNATSChanges(lib.Nats)
 }
 

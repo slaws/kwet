@@ -1,0 +1,21 @@
+.notifier-format-card {
+  width: 512px;
+  margin: 10px;
+  display: inline-block;
+}
+
+.add-notif-button {
+  margin: 10px;
+}
+
+.section {
+  margin: 10px;
+  padding-top: 10px;
+}
+
+.mdl-list__item {
+  padding-top: 0px;
+  padding-bottom: 0px;
+  margin-top: 0px;
+  margin-bottom: 0px;
+}

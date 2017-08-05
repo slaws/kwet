@@ -65,6 +65,47 @@ func (e *Etcd) SetNATSURL(natsurl string) error {
 	return nil
 }
 
+//GetNotifProvider gets configuration to the notification provider
+func (e *Etcd) GetNotifProviderConfig(name string) (*lib.ProviderInfo, error) {
+	provider, err := e.get(fmt.Sprintf("/kwet/notifier/provider/%s", name))
+	if err != nil {
+		return nil, err
+	}
+	var pi lib.ProviderInfo
+	err = json.Unmarshal([]byte(provider), &pi)
+	if err != nil {
+		return nil, err
+	}
+	return &pi, nil
+}
+
+//SetNotifProvider sets configuration for the notification provider
+func (e *Etcd) SetNotifProviderConfig(name, config string) error {
+	err := e.set(fmt.Sprintf("/kwet/notifier/provider/%s", name), config)
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+	return nil
+}
+
+//GetNotifProvider gets the notification provider name
+func (e *Etcd) GetNotifProvider() (string, error) {
+	url, err := e.get("/kwet/notifier/provider")
+	if err != nil {
+		return "", fmt.Errorf("%s", err)
+	}
+	return url, nil
+}
+
+//SetNotifProvider sets the notification provider name
+func (e *Etcd) SetNotifProvider(provider string) error {
+	err := e.set("/kwet/notifier/provider", provider)
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+	return nil
+}
+
 //SetHubRule set a hub rule
 func (e *Etcd) SetHubRule(name, jsonRule string) error {
 	err := e.set(fmt.Sprintf("/kwet/hub/rules/%s", name), jsonRule)
@@ -119,6 +160,84 @@ func (e *Etcd) GetSingleHubRule(key string) (*lib.HubRule, error) {
 		log.Errorf("Unable to unmarshal value %s : %s", string(list[0].Value), err)
 	}
 	return &rule, nil
+}
+
+func (e *Etcd) SetSyslogQueues(list string) error {
+	err := e.set("/kwet/hub/syslogqueues", list)
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+	return nil
+}
+
+func (e *Etcd) GetSyslogQueues() ([]string, error) {
+	data, err := e.get("/kwet/hub/syslogqueues")
+	if err != nil {
+		return nil, fmt.Errorf("%s", err)
+	}
+	var queues []string
+	err = json.Unmarshal([]byte(data), &queues)
+	if err != nil {
+		return nil, err
+	}
+	return queues, nil
+}
+
+// GetNotifFormatRules returns all notifier format rules
+func (e *Etcd) GetNotifFormatRules() ([]lib.FormatRule, error) {
+	rules := make([]lib.FormatRule, 0)
+	list, err := e.getKV("/kwet/notifier/rules/", clientv3.WithPrefix())
+	if err != nil {
+		return nil, fmt.Errorf("%s", err)
+	}
+	if len(list) == 0 {
+		return rules, nil
+	}
+	for _, value := range list {
+		var rule lib.FormatRule
+		err := json.Unmarshal(value.Value, &rule)
+		if err != nil {
+			log.Errorf("Unable to unmarshal value %s : %s", string(value.Value), err)
+			continue
+		}
+		rules = append(rules, rule)
+	}
+	return rules, nil
+}
+
+// GetSingleNotifFormatRule return a specific notifier format rule
+func (e *Etcd) GetSingleNotifFormatRule(key string) (*lib.FormatRule, error) {
+	list, err := e.getKV(fmt.Sprintf("/kwet/notifier/rules/%s", key))
+	if err != nil {
+		return nil, fmt.Errorf("%s", err)
+	}
+	if len(list) == 0 {
+		return nil, nil
+	}
+	var rule lib.FormatRule
+	err = json.Unmarshal(list[0].Value, &rule)
+	if err != nil {
+		log.Errorf("Unable to unmarshal value %s : %s", string(list[0].Value), err)
+	}
+	return &rule, nil
+}
+
+// SetNotifFormatRule saves a rule to etcd
+func (e *Etcd) SetNotifFormatRule(name string, jsonRule string) error {
+	err := e.set(fmt.Sprintf("/kwet/notifier/rules/%s", name), jsonRule)
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+	return nil
+}
+
+//DeleteNotifFormatRule deletes a notifier format rule
+func (e *Etcd) DeleteNotifFormatRule(name string) error {
+	err := e.del(fmt.Sprintf("/kwet/notifier/rules/%s", name))
+	if err != nil {
+		return fmt.Errorf("%s", err)
+	}
+	return nil
 }
 
 func (e *Etcd) set(key, value string) error {

@@ -78,4 +78,34 @@ var routes = Routes{
 		"/settings/hub/rule/{rulename}",
 		DeleteHubRule,
 	},
+	Route{
+		"AddNewNotifRule",
+		"GET",
+		"/notif/new",
+		AddNewNotifRule,
+	},
+	Route{
+		"AddNewNotifRule",
+		"POST",
+		"/notif/new",
+		AddNewNotifRule,
+	},
+	Route{
+		"UpdateNotifRule",
+		"GET",
+		"/settings/notifier/rule/{rulename}",
+		EditNotifRule,
+	},
+	Route{
+		"UpdateNotifRule",
+		"POST",
+		"/settings/notifier/rule/{rulename}",
+		EditNotifRule,
+	},
+	Route{
+		"DeleteNotifRule",
+		"DELETE",
+		"/settings/notifier/rule/{rulename}",
+		DeleteNotifRule,
+	},
 }

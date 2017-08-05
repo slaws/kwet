@@ -1,0 +1,105 @@
+<html>
+<head>
+  <link rel="stylesheet" href="/static/css/material.min.css">
+  <script src="/static/js/material.js"></script>
+  <script src="/static/js/jquery.min.js"></script>
+  <script src="/static/js/newnotifrule.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="/static/css/styles.css">
+  <link rel="stylesheet" href="/static/css/settings.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <div class="demo-layout mdl-layout mdl-js-layout mdl-layout--fixed-drawer mdl-layout--fixed-header">
+    <header class="demo-header mdl-layout__header mdl-color--grey-100 mdl-color-text--grey-600">
+      <div class="mdl-layout__header-row">
+        <span id="title" class="mdl-layout-title">Settings</span>
+        <div class="mdl-layout-spacer"></div>
+        <div class="mdl-textfield mdl-js-textfield mdl-textfield--expandable">
+      </div>
+    </header>
+
+    <div class="demo-drawer mdl-layout__drawer mdl-color--blue-grey-900 mdl-color-text--blue-grey-50">
+      <header class="demo-drawer-header">
+        <div class="demo-avatar-dropdown">
+          <div style="width:80%" class="left">Foobar</div>
+        </div>
+      </header>
+        <div class="mdl-layout-spacer"></div>
+        <a class="mdl-navigation__link" href=""><span class="visuallyhidden">Help</span></a>
+      </nav>
+    </div>
+    <main id="main"  class="mdl-layout__content mdl-color--grey-100">
+      <strong class="section">Format settings </strong>
+      <hr>
+      <form method="post">
+        <div id="ruleTemplate" >
+          <ul class="rules-list-item mdl-list">
+            <li class="mdl-list__item">
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" name="newNotifRuleName" value="{{ $.Name }}" id="newNotifRuleName">
+                <label class="mdl-textfield__label" for="newNotifRuleName">Rule Name</label>
+              </div>
+            </li>
+            <li class="mdl-list__item">
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width:100%" >
+                <input class="mdl-textfield__input" type="text" id="newNotifRuleTitle" name="newNotifRuleTitle" value="{{ $.Title }}" style="width:100%" >
+                <label class="mdl-textfield__label" for="newNotifRuleTitle">Title text</label>
+              </div>
+            </li>
+            <li class="mdl-list__item">
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width:100%" >
+                <input class="mdl-textfield__input" type="text" id="newNotifRuleTitleLink" name="newNotifRuleTitleLink" value="{{ $.TitleLink }}" style="width:100%" >
+                <label class="mdl-textfield__label" for="newNotifRuleTitleLink">Title link to use</label>
+              </div>
+            </li>
+            <li class="mdl-list__item">
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width:100%" >
+                <input class="mdl-textfield__input" type="text" id="newNotifRuleText" name="newNotifRuleText" value="{{ $.Text }}" style="width:100%" >
+                <label class="mdl-textfield__label" for="newNotifRuleText">Text to send</label>
+              </div>
+            </li>
+            <li class="mdl-list__item">
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width:100%" >
+                <input class="mdl-textfield__input" type="text" id="newNotifRuleImageURL" name="newNotifRuleImageURL" value="{{ $.ImageURL }}" style="width:100%" >
+                <label class="mdl-textfield__label" for="newNotifRuleImageURL">Image URL</label>
+              </div>
+            </li>
+          </div>
+          <strong class="section">Variables </strong>
+          <button id="newvar" href="#" type="button" class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab">
+            <i class="material-icons">add</i>
+          </button>
+          <hr>
+          <ul id="varlist" class="rules-list-item mdl-list">
+            {{ if .Vars }}
+            {{ range $v,$a := .Vars }}
+            <li class="mdl-list__item">
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width:40%; display: inline-block" >
+                <input class="mdl-textfield__input" type="text" id="newRuleAction" name="var[]" value="{{ $v }}" style="width:100%" >
+                <label class="mdl-textfield__label" for="newRuleAction">Key</label>
+              </div>
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width:40%;display:inline-block" >
+                <input class="mdl-textfield__input" type="text" id="newRuleAction" name="action[]" value="{{ $a }}" style="width:100%" >
+                <label class="mdl-textfield__label" for="newRuleAction">Value</label>
+              </div>
+              <button href="#" type="button" class="delvar mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab">
+                <i class="material-icons">delete</i>
+              </button>
+            </li>
+            {{ end }}
+            {{ end }}
+          </ul>
+          <hr>
+          <button type="submit" class="mdl-button mdl-js-button mdl-js-ripple-effect">
+            Save
+          </button>
+          <button type="button" onclick="window.location.replace('/settings#notifier-panel')" class="mdl-button mdl-js-button mdl-js-ripple-effect">
+            Cancel
+          </button>
+        </form>
+      </main>
+    </div>
+
+  </body>
+  </html>

@@ -1,5 +1,7 @@
 var loadingClass = 'mdl-progress mdl-js-progress mdl-progress__indeterminate'
 $(window).load(function () {
+
+  // Selecting the right tab in specified in url
   if (window.location.pathname.indexOf("/settings") != -1 && window.location.hash.indexOf('-panel') != -1) {
     $(".mdl-tabs__panel").removeClass('is-active')
     $(".mdl-tabs__tab").removeClass('is-active')
@@ -14,15 +16,17 @@ $(window).load(function () {
   $(".delete-rule").on('click',function() {
     $("#deleterulename").text(this.getAttribute('data-rule'))
     document.querySelector("#deleterulename").setAttribute('data-rule',this.getAttribute('data-rule'))
+    document.querySelector("#deleterulename").setAttribute('data-type',this.getAttribute('data-type'))
     dialog.showModal();
   });
 
   dialog.querySelector('.close').addEventListener('click', function() {
     var rule = $("#deleterulename").text()
+    var type = document.querySelector("#deleterulename").getAttribute('data-type')
     $('.spin[data-rule="'+rule+'"]').addClass(loadingClass);
     componentHandler.upgradeElement(document.querySelector('.spin[data-rule="'+rule+'"]'))
     $.ajax({
-      url: '/settings/hub/rule/'+rule,
+      url: '/settings/'+type+'/rule/'+rule,
       type: 'DELETE',
       success: function(result) {
         $('.spin[data-rule="'+rule+'"]').removeClass(loadingClass);

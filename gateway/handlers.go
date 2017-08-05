@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -52,12 +53,50 @@ func Settings(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errorf("Unable to get hub rules : %s", err)
 	}
+	syslogQueues, err := backend.GetSyslogQueues()
+	if err != nil {
+		log.Errorf("Unable to get syslog queues : %s", err)
+	}
+	formatRules, err := backend.GetNotifFormatRules()
+	if err != nil {
+		log.Errorf("Unable to get notif format : %s", err)
+	}
+	notifProvider, err := backend.GetNotifProvider()
+	if err != nil {
+		log.Errorf("Unable to get notif provider : %s", err)
+	}
+	var notifProviderInfo *lib.ProviderInfo
+	var jsonPI = `{"name: "", "URL": ""}`
+	if notifProvider != "" {
+		notifProviderInfo, err = backend.GetNotifProviderConfig(notifProvider)
+		if err != nil {
+			log.Errorf("Unable to get notif provider : %s", err)
+			jsonPI = "###Error###"
+		} else {
+			data, err := json.Marshal(notifProviderInfo)
+			if err != nil {
+				log.Errorf("Unable to Marshal data %s : %s", string(data), err)
+				jsonPI = "###Error###"
+			} else {
+				jsonPI = string(data)
+			}
+		}
+
+	}
 	data := struct {
-		Natsurl  string
-		HubRules []lib.HubRule
+		Natsurl           string
+		HubRules          []lib.HubRule
+		SyslogQueues      string
+		NotifRules        []lib.FormatRule
+		NotifProvider     string
+		NotifProviderInfo string
 	}{
 		natsurl,
 		hubRules,
+		strings.Join(syslogQueues, ","),
+		formatRules,
+		notifProvider,
+		jsonPI,
 	}
 	t, err := template.ParseFiles("templates/settings.html")
 	if err != nil {
@@ -81,9 +120,19 @@ func UpdateSettings(w http.ResponseWriter, r *http.Request) {
 		updateGeneral(r.Form, w, r)
 		break
 	case "hub":
-		updateHub(r.Form, w, r)
-		break
+		err := updateHub(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	case "notifier":
+		err := updateNotifier(w, r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
+	http.Redirect(w, r, fmt.Sprintf("/settings#%s-panel", vars["module"]), http.StatusSeeOther)
 
 }
 
@@ -108,9 +157,35 @@ func updateGeneral(post url.Values, w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/settings#general-panel", http.StatusSeeOther)
 }
 
-func updateHub(post url.Values, w http.ResponseWriter, r *http.Request) {
+func updateHub(w http.ResponseWriter, r *http.Request) error {
+	sq := strings.Split(r.Form["syslogqueues"][0], ",")
+	jsonstr, err := json.Marshal(sq)
+	if err != nil {
+		return err
+	}
+	err = backend.SetSyslogQueues(string(jsonstr))
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
-	http.Redirect(w, r, "/settings#hub-panel", http.StatusSeeOther)
+func updateNotifier(w http.ResponseWriter, r *http.Request) error {
+	np := r.Form["notifprovider"][0]
+	npc := r.Form["notifproviderconfig"][0]
+
+	err := backend.SetNotifProvider(np)
+	if err != nil {
+		return err
+	}
+	if npc == "###Error###" {
+		return nil
+	}
+	err = backend.SetNotifProviderConfig(np, npc)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func AddNewHubRule(w http.ResponseWriter, r *http.Request) {
@@ -126,28 +201,146 @@ func AddNewHubRule(w http.ResponseWriter, r *http.Request) {
 		}
 		break
 	case "POST":
-		err := r.ParseForm()
+		rule, err := getHubRule(r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		name := r.Form["newRuleName"][0]
-		queue := r.Form["newRuleQueue"][0]
-		cond := r.Form["newRuleCondition"][0]
-		act := r.Form["newRuleAction"][0]
-		rule := lib.HubRule{
-			Name:      strings.ToUpper(name),
-			Queue:     queue,
-			Condition: cond,
-			Action:    act,
-		}
-		err = saveHubRule(rule, w, r)
+		err = saveHubRule(*rule, w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		http.Redirect(w, r, "/settings#hub-panel", http.StatusSeeOther)
 	}
+}
+
+func AddNewNotifRule(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		t, err := template.ParseFiles("templates/newnotifrule.html")
+		if err != nil {
+			log.Errorf("Unable to parse index template : %s", err)
+		}
+		err = t.Execute(w, nil)
+		if err != nil {
+			log.Errorf("Error executing template : %s ", err)
+		}
+		break
+	case "POST":
+		rule, err := getFormatRule(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		jsonstr, err := json.Marshal(rule)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		log.Infof("%+v", r.Form)
+		err = backend.SetNotifFormatRule(rule.Name, string(jsonstr))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, "/settings#notifier-panel", http.StatusSeeOther)
+	}
+}
+
+// EditNotifRule allows to edit a specific rule
+func EditNotifRule(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	switch r.Method {
+	case "GET":
+		r, err := backend.GetSingleNotifFormatRule(vars["rulename"])
+		if err != nil || r == nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		t, err := template.ParseFiles("templates/newnotifrule.html")
+		if err != nil {
+			log.Errorf("Unable to parse index template : %s", err)
+		}
+		err = t.Execute(w, r)
+		if err != nil {
+			log.Errorf("Error executing template : %s ", err)
+		}
+		break
+	case "POST":
+		rule, err := getFormatRule(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		jsonstr, err := json.Marshal(rule)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		log.Infof("%+v", r.Form)
+		err = backend.SetNotifFormatRule(rule.Name, string(jsonstr))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, "/settings#notifier-panel", http.StatusSeeOther)
+	}
+}
+
+func DeleteNotifRule(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	err := backend.DeleteNotifFormatRule(vars["rulename"])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/settings#notifier-panel", http.StatusOK)
+}
+
+func getHubRule(r *http.Request) (*lib.HubRule, error) {
+	err := r.ParseForm()
+	if err != nil {
+		return nil, err
+	}
+	name := r.Form["newRuleName"][0]
+	queue := r.Form["newRuleQueue"][0]
+	cond := r.Form["newRuleCondition"][0]
+	act := r.Form["newRuleAction"][0]
+	rule := lib.HubRule{
+		Name:      strings.ToUpper(name),
+		Queue:     queue,
+		Condition: cond,
+		Action:    act,
+	}
+	return &rule, nil
+}
+
+func getFormatRule(r *http.Request) (*lib.FormatRule, error) {
+	err := r.ParseForm()
+	if err != nil {
+		return nil, err
+	}
+	name := r.Form["newNotifRuleName"][0]
+	title := r.Form["newNotifRuleTitle"][0]
+	titleLink := r.Form["newNotifRuleTitleLink"][0]
+	text := r.Form["newNotifRuleText"][0]
+	imageURL := r.Form["newNotifRuleImageURL"][0]
+	vars := r.Form["var[]"]
+	subs := r.Form["action[]"]
+	var listvar = make(map[string]string, 0)
+	for index, value := range vars {
+		listvar[value] = subs[index]
+	}
+	rule := lib.FormatRule{
+		Name:      name,
+		Title:     title,
+		TitleLink: titleLink,
+		Text:      text,
+		ImageURL:  imageURL,
+		Vars:      listvar,
+	}
+	return &rule, nil
 }
 
 // EditHubRule allows to edit a specific rule
@@ -170,22 +363,12 @@ func EditHubRule(w http.ResponseWriter, r *http.Request) {
 		}
 		break
 	case "POST":
-		err := r.ParseForm()
+		rule, err := getHubRule(r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		name := r.Form["newRuleName"][0]
-		queue := r.Form["newRuleQueue"][0]
-		cond := r.Form["newRuleCondition"][0]
-		act := r.Form["newRuleAction"][0]
-		rule := lib.HubRule{
-			Name:      strings.ToUpper(name),
-			Queue:     queue,
-			Condition: cond,
-			Action:    act,
-		}
-		err = saveHubRule(rule, w, r)
+		err = saveHubRule(*rule, w, r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

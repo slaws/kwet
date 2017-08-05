@@ -7,7 +7,7 @@
   <script src="/static/js/settings.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
   <link rel="stylesheet" href="/static/css/styles.css">
-  <link rel="stylesheet" href="/static/css/logs.css">
+  <link rel="stylesheet" href="/static/css/settings.css">
   <link rel="stylesheet" href="/static/css/dialog-polyfill.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
@@ -40,6 +40,7 @@
           <a href="#notifier-panel" class="mdl-tabs__tab">Notifier</a>
         </div>
 
+        <!-- General panel -->
         <div class="mdl-tabs__panel is-active" id="general-panel">
           <form action="/settings/general" method="post">
             <ul class="demo-list-item mdl-list">
@@ -56,6 +57,9 @@
             </button>
           </form>
         </div>
+
+
+        <!-- gateway panel -->
         <div class="mdl-tabs__panel" id="gateway-panel">
           <pre>Gateway does not have any configuration (yet..)</pre>
         </div>
@@ -66,11 +70,11 @@
         <div class="mdl-tabs__panel" id="hub-panel">
           <br>
           <b>General Settings :</b>
-          <form action="#">
+          <form action="/settings/hub" method="post">
             <ul class="hubsetting-list-item mdl-list">
               <li class="mdl-list__item mdl-list__item">
                 <div style="width:60%"class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                  <input class="mdl-textfield__input" type="text" id="syslogqueues">
+                  <input class="mdl-textfield__input" type="text" name="syslogqueues" value="{{ .SyslogQueues }}" id="syslogqueues">
                   <label class="mdl-textfield__label" for="syslogqueues">Syslog Queues separated by comma (in_system.*,myqueue,...)</label>
                 </div>
               </li>
@@ -81,7 +85,7 @@
           </form>
           <hr>
           <b>Rules</b>
-          <form action="/settings/hub" method="post">
+          <form action="#hub-panel">
             <ul class="hubrule-list-item mdl-list">
               {{ range $i,$r := .HubRules }}
               <li class="mdl-list__item mdl-list__item--three-line">
@@ -93,12 +97,12 @@
                       <i><b>Condition : </b></i>{{ $r.Condition }}<br>
                       <i><b>Action : </b></i>{{ $r.Action }}
                     </div>
-                    <span data-rule="{{ $r.Name }}" style="width:100%" class="spin"></span>
+                    <span data-rule="{{ $r.Name }}" data-type="hub" style="width:100%" class="spin"></span>
                   </span>
                 </span>
                 <span class="mdl-list__item-secondary-content">
                   <a class="mdl-list__item-secondary-action" href="/settings/hub/rule/{{ $r.Name }}"><i class="material-icons">mode_edit</i></a>
-                  <a class="mdl-list__item-secondary-action delete-rule" href="#hub-panel" data-rule="{{$r.Name}}" ><i class="material-icons">delete</i></a>
+                  <a class="mdl-list__item-secondary-action delete-rule" href="#hub-panel" data-type="hub" data-rule="{{$r.Name}}" ><i class="material-icons">delete</i></a>
                 </span>
               </li>
               {{ end }}
@@ -109,14 +113,63 @@
           </form>
 
         </div>
+
+        <!-- notifier panel -->
         <div class="mdl-tabs__panel" id="notifier-panel">
-          <ul>
-            <li>Viserys</li>
-            <li>Daenerys</li>
-          </ul>
+          <br>
+          <b>General Settings :</b>
+          <hr>
+          <form action="/settings/notifier" method="post">
+            <ul class="hubsetting-list-item mdl-list">
+              <li class="mdl-list__item mdl-list__item">
+                <div style="width:60%"class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" name="notifprovider" value="{{ .NotifProvider }}" id="notifprovider">
+                  <label class="mdl-textfield__label" for="notifprovider">Notification Provider</label>
+                </div>
+              </li>
+              <li class="mdl-list__item mdl-list__item">
+                <div style="width:60%"class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" name="notifproviderconfig" value="{{ .NotifProviderInfo }}" id="notifproviderconfig">
+                  <label class="mdl-textfield__label" for="notifproviderconfig">Notification Provider Configuration (json format)</label>
+                </div>
+              </li>
+            </ul>
+            <button type="submit" class="mdl-button mdl-js-button mdl-js-ripple-effect">
+              Save
+            </button>
+          </form>
+          <b>Rules</b>
+          <hr>
+          <div style="width:100%">
+            <button class="add-notif-button mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect" onclick="window.location.replace('/notif/new')">
+              Add Rule
+            </button>
+          </div>
+
+          {{ range $fr := .NotifRules}}
+          <div class="notifier-format-card mdl-card mdl-shadow--2dp">
+            <div class="mdl-card__title">
+              <h2 class="mdl-card__title-text">{{ $fr.Name }}</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+              <strong>title :</strong> {{ $fr.Title }} <br>
+              <strong>title_link :</strong> {{ $fr.TitleLink }} <br>
+              <strong>text :</strong> {{ $fr.Text }}<br>
+              <strong>image_url :</strong> {{ $fr.ImageURL }}<br>
+              <span data-rule="{{ $fr.Name }}" data-type="notifier" style="width:100%" class="spin"></span>
+            </div>
+            <div class="mdl-card__menu">
+              <button onclick="window.location.replace('/settings/notifier/rule/{{ $fr.Name }}')" class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect">
+                <i class="material-icons">edit</i>
+              </button>
+              <button type="button" data-rule="{{ $fr.Name }}" data-type="notifier" class="delete-rule mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect">
+                <i class="material-icons">delete</i>
+              </button>
+            </div>
+          </div>
+          {{ end }}
         </div>
       </div>
-      <div id="loadingbar" style="width:100%;display:none;" class="mdl-progress mdl-js-progress mdl-progress__indeterminate"></div>
     </main>
   </div>
   <div id="alert-snackbar" class="mdl-js-snackbar mdl-snackbar">

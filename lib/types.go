@@ -46,6 +46,7 @@ type ProviderInfo struct {
 }
 
 type FormatRule struct {
+	Name      string
 	Title     string
 	TitleLink string `toml:"title_link"`
 	Text      string
