@@ -53,3 +53,8 @@ type FormatRule struct {
 	ImageURL  string `toml:"image_url"`
 	Vars      map[string]string
 }
+
+type ConfigChangeEvent struct {
+	Type   string
+	Params string
+}

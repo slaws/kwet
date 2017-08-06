@@ -34,7 +34,7 @@ var actionFunctions = map[string]govaluate.ExpressionFunction{
 			return false, fmt.Errorf("Unable to marshal message : %s", err)
 		}
 		msg := &nats.Msg{Subject: queue, Data: jstr}
-		err = nc.PublishMsg(msg)
+		err = (*nc.Conn).PublishMsg(msg)
 		if err != nil {
 			return false, fmt.Errorf("Unable to publish message to queue %s : %v", queue, err)
 		}

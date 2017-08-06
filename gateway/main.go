@@ -56,5 +56,22 @@ func main() {
 }
 
 func WatchForConfigChanges() {
-	backend.WatchForNATSChanges(nc)
+	events := make(chan lib.ConfigChangeEvent, 10)
+	go backend.WatchForNATSChanges(&nc, &events)
+	for {
+		evt := <-events
+		switch evt.Type {
+		case "NATSURLChange":
+			if nc.Conn != nil && nc.Conn.IsConnected() {
+				nc.Disconnect()
+			}
+			err := nc.Connect(evt.Params)
+			if err != nil {
+				log.Warnf("Unable to connect to NATS at %s", evt.Params)
+				continue
+			}
+		}
+
+		log.Warnf("Event ! %+v", evt)
+	}
 }

@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
+	store "github.com/slaws/kwet/lib/backends"
 
 	"github.com/slaws/kwet/lib"
 )
@@ -85,8 +86,12 @@ func (rc *RocketChat) Send(message lib.ClusterEvent) error {
 }
 
 // CreateRocketChat creates a provider
-func CreateRocketChat(conf lib.Config) (Notifier, error) {
+func CreateRocketChat(conf store.Backend) (Notifier, error) {
+	config, err := conf.GetNotifProviderConfig("rocketchat")
+	if err != nil {
+		return nil, err
+	}
 	return &RocketChat{
-		URL: conf.Provider.URL,
+		URL: config.URL,
 	}, nil
 }

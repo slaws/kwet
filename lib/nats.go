@@ -15,11 +15,12 @@ type Event struct {
 }
 
 type Nats struct {
-	Conn *nats.Conn
+	Conn                 *nats.Conn
+	SubjectSubscriptions []*nats.Subscription
 }
 
 // NatsConnect connects to the specified URL
-func NatsConnect(url string) (*nats.Conn, error) {
+func NatsConnect(url string, opt ...*nats.Options) (*nats.Conn, error) {
 	// var err error
 	nc, err := nats.Connect(url)
 	if err != nil {

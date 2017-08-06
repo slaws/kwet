@@ -3,37 +3,42 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"os"
 	"regexp"
 	"runtime"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/Knetic/govaluate"
 	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
 	"github.com/slaws/kwet/lib"
+	"github.com/slaws/kwet/lib/backends"
 	"github.com/spf13/pflag"
 )
 
-// Config defines a configuration
-type Config struct {
-	ListenQueues []string          `toml:"listen_queues,omitempty"`
-	SyslogQueues []string          `toml:"syslog_queues"`
-	TopicRules   map[string][]rule `toml:"rules"`
-}
+// // Config defines a configuration
+// type Config struct {
+// 	ListenQueues []string          `toml:"listen_queues,omitempty"`
+// 	SyslogQueues []string          `toml:"syslog_queues"`
+// 	TopicRules   map[string][]rule `toml:"rules"`
+// }
+//
+// type topicRule struct {
+// 	Rules []rule `toml:"when"`
+// }
+// type rule struct {
+// 	Condition string
+// 	Action    string
+// 	Params    string
+// }
 
-type topicRule struct {
-	Rules []rule `toml:"when"`
-}
-type rule struct {
-	Condition string
-	Action    string
-	Params    string
-}
+var nc = lib.Nats{}
+var backend backends.Backend
+var listenQueues = []string{">"}
+var syslogQueues = make([]string, 0)
+var topicRules = make([]lib.HubRule, 0)
 
-var nc *nats.Conn
-
-func processSyslogMessages(message *nats.Msg, conf Config, nc *nats.Conn) {
+func processSyslogMessages(message *nats.Msg, nc lib.Nats) {
 	log.Infof("Queue %s is a syslog queue ... using special format..", message.Subject)
 	var list []interface{}
 	var syslogMessages lib.ClusterEvent
@@ -54,11 +59,11 @@ func processSyslogMessages(message *nats.Msg, conf Config, nc *nats.Conn) {
 		}
 		syslogMessages.Source = "fluent-syslog"
 		syslogMessages.Tags = append(syslogMessages.Tags, "syslog", "fluent")
-		applyRules(syslogMessages, conf, message.Subject, nc)
+		applyRules(syslogMessages, message.Subject, nc)
 	}
 }
 
-func processClusterEvent(msg *nats.Msg, conf Config, nc *nats.Conn) {
+func processClusterEvent(msg *nats.Msg, nc lib.Nats) {
 	var evt lib.ClusterEvent
 	err := json.Unmarshal(msg.Data, &evt)
 	if err != nil {
@@ -68,19 +73,20 @@ func processClusterEvent(msg *nats.Msg, conf Config, nc *nats.Conn) {
 	if lib.ContainsString(evt.Tags, "Notification") {
 		return
 	}
-	applyRules(evt, conf, msg.Subject, nc)
+	applyRules(evt, msg.Subject, nc)
 }
 
-func applyRules(evt lib.ClusterEvent, conf Config, source string, nc *nats.Conn) {
-	var ruleList []rule
-	for key, value := range conf.TopicRules {
-		match, _ := regexp.MatchString(key, source)
+func applyRules(evt lib.ClusterEvent, source string, nc lib.Nats) {
+	var ruleList []lib.HubRule
+	for _, value := range topicRules {
+		match, _ := regexp.MatchString(value.Queue, source)
 		if match {
-			ruleList = append(ruleList, value...)
+			ruleList = append(ruleList, value)
 		}
 	}
 
 	for _, rule := range ruleList {
+		log.Infof("Processing rule %s", rule.Name)
 		expression, err := govaluate.NewEvaluableExpressionWithFunctions(rule.Condition, functions)
 		if err != nil {
 			log.Warningf("Error while creating condition : %s. Skipping", err)
@@ -115,39 +121,77 @@ func applyRules(evt lib.ClusterEvent, conf Config, source string, nc *nats.Conn)
 }
 
 func main() {
+	// var err error
+	// natsURL := pflag.StringP("nats", "s", "nats://nats:4222", "NATS server URL")
+	// c := pflag.StringP("config", "c", "/etc/kwet-hub.toml", "Config file (toml format)")
+	// l := pflag.StringArrayP("syslogqueue", "l", nil, "Queues receiving syslog messages from fluentd")
+	// q := pflag.StringArrayP("queue", "q", nil, "Queue to listen on for events")
+	// pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	// pflag.Parse()
+
 	var err error
-	natsURL := pflag.StringP("nats", "s", "nats://nats:4222", "NATS server URL")
-	c := pflag.StringP("config", "c", "/etc/kwet-hub.toml", "Config file (toml format)")
-	l := pflag.StringArrayP("syslogqueue", "l", nil, "Queues receiving syslog messages from fluentd")
-	q := pflag.StringArrayP("queue", "q", nil, "Queue to listen on for events")
+	backendType := pflag.StringP("backend", "b", "etcd", "Backend type")
+	backendURL := pflag.StringArrayP("endpoint", "e", []string{"kwet-etcd-cluster-client:2379"}, "backend URL")
+	var natsURL string
+	pflag.StringVarP(&natsURL, "nats", "s", "", "NATS server URL")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
-	var conf Config
-	if _, err = toml.DecodeFile(*c, &conf); err != nil {
-		log.Errorf("Error while parsing config file : %s", err)
+	// var conf Config
+	// if _, err = toml.DecodeFile(*c, &conf); err != nil {
+	// 	log.Errorf("Error while parsing config file : %s", err)
+	// }
+	// if len(*q) != 0 {
+	// 	conf.ListenQueues = *q
+	// }
+	// if len(*l) != 0 {
+	// 	conf.SyslogQueues = *l
+	// }
+
+	backend, err = backends.SetupBackend(backends.BackendConfig{Type: *backendType, Endpoint: *backendURL})
+	if err != nil {
+		log.Errorf("Unable to configure Backend %s : %s", *backendType, err)
 	}
-	if len(*q) != 0 {
-		conf.ListenQueues = *q
+	err = backend.Connect()
+	if err != nil {
+		log.Errorf("Unable to connect to backend %s : %s ", *backendType, err)
+		os.Exit(1)
 	}
-	if len(*l) != 0 {
-		conf.SyslogQueues = *l
+	syslogQueues, err = backend.GetSyslogQueues()
+	if err != nil {
+		log.Errorf("Unable to get Hub Rules :%s", err)
 	}
 
 	log.Info("Starting kwet-hub")
-	log.Infof("Listening for events on %s.Syslog Queues : %s", strings.Join(conf.ListenQueues, ","), strings.Join(conf.SyslogQueues, ","))
-	nc, err = lib.NatsConnect(*natsURL)
+	log.Infof("Listening for events on %s.Syslog Queues : %s", strings.Join(listenQueues, ","), strings.Join(syslogQueues, ","))
+
+	if natsURL == "" {
+		var error error
+		natsURL, error = backend.GetNATSURL()
+		if error != nil {
+			log.Errorf("Unable to get NATS URL :%s", error)
+		}
+	}
+	if natsURL != "" {
+		err = nc.Connect(natsURL)
+		if err != nil {
+			log.Error(err)
+		}
+	} else {
+		log.Warnf("No url provided for NATS. Not connected.")
+	}
+	topicRules, err = backend.GetHubRules()
 	if err != nil {
-		log.Fatal(err)
+		log.Errorf("Unable to get Hub Rules :%s", err)
 	}
 
-	for _, queue := range conf.ListenQueues {
-		nc.Subscribe(queue, func(msg *nats.Msg) {
+	for _, queue := range listenQueues {
+		(*nc.Conn).Subscribe(queue, func(msg *nats.Msg) {
 			log.Infof("Message for : %s", msg.Subject)
-			if lib.MatchStringInList(conf.SyslogQueues, msg.Subject) {
-				processSyslogMessages(msg, conf, nc)
+			if lib.MatchStringInList(syslogQueues, msg.Subject) {
+				processSyslogMessages(msg, nc)
 			} else {
-				processClusterEvent(msg, conf, nc)
+				processClusterEvent(msg, nc)
 			}
 		})
 	}

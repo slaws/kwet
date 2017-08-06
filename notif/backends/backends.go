@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/slaws/kwet/lib"
+	store "github.com/slaws/kwet/lib/backends"
 )
 
 // Notifier is an interface for medias
@@ -15,7 +16,7 @@ type Notifier interface {
 }
 
 // NotifierFactory creates Notifier
-type NotifierFactory func(conf lib.Config) (Notifier, error)
+type NotifierFactory func(conf store.Backend) (Notifier, error)
 
 var backendNotifier = make(map[string]NotifierFactory)
 
@@ -41,10 +42,14 @@ func ListNotifier() {
 }
 
 // SetupNotifier builds a notifier
-func SetupNotifier(conf lib.Config) (Notifier, error) {
-	factory, ok := backendNotifier[strings.ToLower(conf.Provider.Name)]
+func SetupNotifier(conf store.Backend) (Notifier, error) {
+	provider, err := conf.GetNotifProvider()
+	if err != nil {
+		return nil, err
+	}
+	factory, ok := backendNotifier[strings.ToLower(provider)]
 	if !ok {
-		return nil, fmt.Errorf("No provider %s declared", strings.ToLower(conf.Provider.Name))
+		return nil, fmt.Errorf("No provider %s declared", strings.ToLower(provider))
 	}
 	return factory(conf)
 }

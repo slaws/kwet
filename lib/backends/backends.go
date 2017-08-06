@@ -26,7 +26,7 @@ type Backend interface {
 	GetSingleNotifFormatRule(string) (*lib.FormatRule, error)
 	SetNotifFormatRule(string, string) error
 	DeleteNotifFormatRule(string) error
-	WatchForNATSChanges(lib.Nats)
+	WatchForNATSChanges(*lib.Nats, *chan lib.ConfigChangeEvent)
 }
 
 type BackendConfig struct {

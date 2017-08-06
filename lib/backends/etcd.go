@@ -286,19 +286,17 @@ func (e *Etcd) getKV(key string, options ...clientv3.OpOption) ([]*mvccpb.KeyVal
 	return resp.Kvs, nil
 }
 
-func (e *Etcd) WatchForNATSChanges(nc lib.Nats) {
+func (e *Etcd) WatchForNATSChanges(nc *lib.Nats, event *chan lib.ConfigChangeEvent) {
 	changes := e.Conn.Watch(context.Background(), "/kwet/nats", clientv3.WithPrefix())
 	for wresp := range changes {
 		for _, ev := range wresp.Events {
 			if string(ev.Kv.Key) == "/kwet/nats/url" && string(ev.Kv.Key) != nc.Conn.ConnectedUrl() {
-				log.Infof("NATS URL changed in etcd from %s to %s : reconnecting", nc.Conn.ConnectedUrl(), ev.Kv.Value)
-				if nc.Conn != nil && nc.Conn.IsConnected() {
-					nc.Disconnect()
+				log.Infof("NATS URL changed in etcd from %s to %s", nc.Conn.ConnectedUrl(), ev.Kv.Value)
+				*event <- lib.ConfigChangeEvent{
+					Type:   "NATSURLChange",
+					Params: string(ev.Kv.Value),
 				}
-				err := nc.Connect(string(ev.Kv.Value))
-				if err != nil {
-					log.Warnf("Unable to connect to NATS at %s", string(ev.Kv.Value))
-				}
+
 			}
 		}
 	}
