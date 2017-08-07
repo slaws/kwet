@@ -60,7 +60,7 @@ func main() {
 		}
 	}
 	if natsURL != "" {
-		err = nc.Connect(natsURL)
+		err = nc.Connect(natsURL, nats.Name("Notifier"))
 		if err != nil {
 			log.Error(err)
 		}
@@ -76,7 +76,7 @@ func main() {
 	log.Info("Starting kwet Notifier...")
 	backends.ListNotifier()
 	if nc.Conn != nil && (*nc.Conn).IsConnected() {
-		sub, err := (*nc.Conn).Subscribe(*notifyQueue, func(msg *nats.Msg) {
+		sub, err := (*nc.Conn).QueueSubscribe(*notifyQueue, "notificationRequests", func(msg *nats.Msg) {
 			messageHandler(msg, provider)
 		})
 		if err != nil {
@@ -143,7 +143,6 @@ func messageHandler(msg *nats.Msg, provider backends.Notifier) {
 	rule, err := backend.GetSingleNotifFormatRule(smsg.Source)
 	if err != nil {
 		log.Errorf("Error while retrieving rule for %s : %s", smsg.Source, err)
-		return
 	}
 	log.Infof("value, %+v, %s", rule, smsg.Source)
 	var mesg map[string]interface{}
@@ -152,8 +151,7 @@ func messageHandler(msg *nats.Msg, provider backends.Notifier) {
 		log.Warnf("Error while processing message !")
 	} else {
 		data := smsg.Message.(string)
-		log.Warnf("Title : %s", Variabilize(rule.Title, rule.Vars, data))
-		if Variabilize(rule.Title, rule.Vars, data) != "" {
+		if rule != nil && Variabilize(rule.Title, rule.Vars, data) != "" {
 			dataMsg := fmt.Sprintf(`{
 				"title": "%s",
 				"title_link": "%s",

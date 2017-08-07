@@ -30,8 +30,8 @@ func NatsConnect(url string, opt ...*nats.Options) (*nats.Conn, error) {
 	return nc, nil
 }
 
-func (n *Nats) Connect(url string) error {
-	nc, err := nats.Connect(url)
+func (n *Nats) Connect(url string, options ...nats.Option) error {
+	nc, err := nats.Connect(url, options...)
 	if err != nil {
 		return fmt.Errorf("Error while connecting to nats url (%s) : %s", url, err)
 	}
