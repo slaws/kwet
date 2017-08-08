@@ -16,22 +16,6 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// // Config defines a configuration
-// type Config struct {
-// 	ListenQueues []string          `toml:"listen_queues,omitempty"`
-// 	SyslogQueues []string          `toml:"syslog_queues"`
-// 	TopicRules   map[string][]rule `toml:"rules"`
-// }
-//
-// type topicRule struct {
-// 	Rules []rule `toml:"when"`
-// }
-// type rule struct {
-// 	Condition string
-// 	Action    string
-// 	Params    string
-// }
-
 var nc = lib.Nats{}
 var backend backends.Backend
 var listenQueues = []string{">"}
@@ -121,13 +105,6 @@ func applyRules(evt lib.ClusterEvent, source string, nc lib.Nats) {
 }
 
 func main() {
-	// var err error
-	// natsURL := pflag.StringP("nats", "s", "nats://nats:4222", "NATS server URL")
-	// c := pflag.StringP("config", "c", "/etc/kwet-hub.toml", "Config file (toml format)")
-	// l := pflag.StringArrayP("syslogqueue", "l", nil, "Queues receiving syslog messages from fluentd")
-	// q := pflag.StringArrayP("queue", "q", nil, "Queue to listen on for events")
-	// pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
-	// pflag.Parse()
 
 	var err error
 	backendType := pflag.StringP("backend", "b", "etcd", "Backend type")
@@ -136,17 +113,6 @@ func main() {
 	pflag.StringVarP(&natsURL, "nats", "s", "", "NATS server URL")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
-
-	// var conf Config
-	// if _, err = toml.DecodeFile(*c, &conf); err != nil {
-	// 	log.Errorf("Error while parsing config file : %s", err)
-	// }
-	// if len(*q) != 0 {
-	// 	conf.ListenQueues = *q
-	// }
-	// if len(*l) != 0 {
-	// 	conf.SyslogQueues = *l
-	// }
 
 	backend, err = backends.SetupBackend(backends.BackendConfig{Type: *backendType, Endpoint: *backendURL})
 	if err != nil {
@@ -195,6 +161,22 @@ func main() {
 			}
 		})
 	}
-
+	go WatchForConfigChanges()
 	runtime.Goexit()
+}
+
+func WatchForConfigChanges() {
+	var err error
+	events := make(chan lib.ConfigChangeEvent, 10)
+	go backend.WatchForHubRulesChanges(&nc, &events)
+	for {
+		evt := <-events
+		switch evt.Type {
+		case "HubRuleChange":
+			topicRules, err = backend.GetHubRules()
+			if err != nil {
+				log.Errorf("Unable to get Hub Rules :%s", err)
+			}
+		}
+	}
 }

@@ -301,3 +301,15 @@ func (e *Etcd) WatchForNATSChanges(nc *lib.Nats, event *chan lib.ConfigChangeEve
 		}
 	}
 }
+
+func (e *Etcd) WatchForHubRulesChanges(nc *lib.Nats, event *chan lib.ConfigChangeEvent) {
+	changes := e.Conn.Watch(context.Background(), "/kwet/hub/rules", clientv3.WithPrefix())
+	for wresp := range changes {
+		for _, ev := range wresp.Events {
+			*event <- lib.ConfigChangeEvent{
+				Type:   "HubRuleChange",
+				Params: string(ev.Kv.Value),
+			}
+		}
+	}
+}

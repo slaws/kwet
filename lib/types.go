@@ -11,7 +11,8 @@ type ClusterEvent struct {
 	Host      string      `json:"host,omitempty"`
 	Identity  string      `json:"ident,omitempty"`
 	PID       string      `json:"pid,omitempty"`
-	Priority  string      `json:"pri,omitempty"`
+	Priority  string      `json:"priority,omitempty"`
+	Facility  string      `json:"facility,omitempty"`
 }
 
 //HubRule defines a routing rule for kwet-hub

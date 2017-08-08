@@ -17,6 +17,7 @@
         <div class="mdl-layout-spacer"></div>
         <div class="mdl-textfield mdl-js-textfield mdl-textfield--expandable">
           <i class="material-icons" onclick="fullscreen()">airplay</i>
+          <i class="material-icons" onclick="window.location.replace('/settings')">settings</i>
           <label class="mdl-button mdl-js-button mdl-button--icon" for="search">
             <i class="material-icons">search</i>
           </label>
@@ -39,27 +40,10 @@
       <header class="demo-drawer-header">
         <div class="demo-avatar-dropdown">
           <div style="width:80%" class="left"><i id="socket-status" class="material-icons socket-closed">visibility</i>&nbsp; Websocket status </div><div style="width:19%" class="right"><i id="scroll-status" onClick="toggleScroll()" class="material-icons scroll-on right">file_download</i></div>
-          <!-- <span>hello@example.com </span>
-          <div class="mdl-layout-spacer"></div>
-          <button id="accbtn" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--icon">
-            <i class="material-icons" role="presentation">arrow_drop_down</i>
-            <span class="visuallyhidden">Accounts</span>
-          </button>
-          <ul class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect" for="accbtn">
-            <li class="mdl-menu__item">helloa@example.com</li>
-            <li class="mdl-menu__item">info@example.com</li>
-            <li class="mdl-menu__item"><i class="material-icons">add</i>Add another account...</li>
-          </ul>
-        -->
         </div>
       </header>
       <nav id="queuelist" class="demo-navigation mdl-navigation mdl-color--blue-grey-800">
-        <a class="mdl-navigation__link" href="#" onclick="watchQueue('')">All queues</a>
-        {{ if .NatsStatus }}
-        {{ range $i, $q := . }}
-        <a class="mdl-navigation__link" href="#" onclick="watchQueue('{{ $q }}')">{{ $q }}</a>
-        {{ end }}
-        {{ end }}
+        <a class="mdl-navigation__link" href="#" onclick="watchQueue('')">All queues</a>é
         <div class="mdl-layout-spacer"></div>
         <a class="mdl-navigation__link" href=""><span class="visuallyhidden">Help</span></a>
       </nav>
@@ -77,9 +61,9 @@
         <tbody>
         </tbody>
       </table>
-      <div id="snack" aria-live="assertive" aria-atomic="true" aria-relevant="text" class="mdl-snackbar mdl-js-snackbar">
+      <div id="snack" aria-live="assertive" aria-atomic="true" aria-relevant="text" class="snack {{ if not .NatsStatus }} active {{ end }} mdl-snackbar mdl-js-snackbar">
         <div class="mdl-snackbar__text"></div>
-        <button type="button" class="mdl-snackbar__action"></button>
+        <button type="button" onclick="window.location.replace('/settings')"class="mdl-snackbar__action"></button>
       </div>
     </main>
   </div>
