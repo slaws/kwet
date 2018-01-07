@@ -1,18 +1,17 @@
 package lib
 
-import "time"
+import (
+	"time"
+)
 
 // ClusterEvent is a message used by kwet
 type ClusterEvent struct {
-	Source    string      `json:"source"`
-	Message   interface{} `json:"message"`
-	Tags      []string    `json:"tags,omitempty"`
-	Processed bool        `json:"processed"`
-	Host      string      `json:"host,omitempty"`
-	Identity  string      `json:"ident,omitempty"`
-	PID       string      `json:"pid,omitempty"`
-	Priority  string      `json:"priority,omitempty"`
-	Facility  string      `json:"facility,omitempty"`
+	Kind string
+	*SyslogMessage
+	*K8SMessage
+	Source    string   `json:"source"`
+	Tags      []string `json:"tags,omitempty"`
+	Processed bool     `json:"processed"`
 }
 
 //HubRule defines a routing rule for kwet-hub
@@ -34,6 +33,28 @@ type SyslogMessage struct {
 	MsgID     string    `json:"msgid"`
 	ExtraData string    `json:"extradata"`
 	Message   string    `json:"message"`
+}
+
+type K8SMessage struct {
+	Tag        string            `json:"tag"`
+	Log        string            `json:"log"`
+	Stream     string            `json:"stream"`
+	Time       string            `json:"time"`
+	Docker     map[string]string `json:"docker"`
+	Kubernetes *K8SMetadata      `json:"kubernetes"`
+	Host       string            `json:"host"`
+	MasterURL  string            `json:"master_url"`
+}
+
+type K8SMetadata struct {
+	PodName       string            `json:"pod_name"`
+	Namespace     string            `json:"namespace_name"`
+	PodID         string            `json:"pod_id"`
+	Labels        map[string]string `json:"labels"`
+	Annotations   map[string]string `json:"annotations"`
+	Host          string            `json:"host"`
+	ContainerName string            `json:"container_name"`
+	DockerID      string            `json:"docker_id"`
 }
 
 type Config struct {

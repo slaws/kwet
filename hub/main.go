@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"os"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
@@ -60,6 +61,13 @@ func processClusterEvent(msg *nats.Msg, nc lib.Nats) {
 	applyRules(evt, msg.Subject, nc)
 }
 
+func processMessage(msg lib.ClusterEvent, nc lib.Nats) {
+	if lib.ContainsString(msg.Tags, "Notification") {
+		return
+	}
+	applyRules(msg, msg.Source, nc)
+}
+
 func applyRules(evt lib.ClusterEvent, source string, nc lib.Nats) {
 	var ruleList []lib.HubRule
 	for _, value := range topicRules {
@@ -70,7 +78,7 @@ func applyRules(evt lib.ClusterEvent, source string, nc lib.Nats) {
 	}
 
 	for _, rule := range ruleList {
-		log.Infof("Processing rule %s", rule.Name)
+		log.Debugf("Processing rule %s", rule.Name)
 		expression, err := govaluate.NewEvaluableExpressionWithFunctions(rule.Condition, functions)
 		if err != nil {
 			log.Warningf("Error while creating condition : %s. Skipping", err)
@@ -153,11 +161,47 @@ func main() {
 
 	for _, queue := range listenQueues {
 		(*nc.Conn).Subscribe(queue, func(msg *nats.Msg) {
-			log.Infof("Message for : %s", msg.Subject)
-			if lib.MatchStringInList(syslogQueues, msg.Subject) {
-				processSyslogMessages(msg, nc)
-			} else {
-				processClusterEvent(msg, nc)
+			//log.Infof("Message for : %s", msg.Subject)
+			var raw interface{}
+			err := json.Unmarshal(msg.Data, &raw)
+			if err != nil {
+				log.Debugf("Unable to process raw msg %+v : %s ", string(msg.Data), err)
+			}
+			v := reflect.ValueOf(raw)
+			switch v.Kind() {
+			case reflect.Slice:
+				var m [][]interface{}
+				err := json.Unmarshal(msg.Data, &m)
+				if err != nil {
+					log.Warnf("Unable to process raw msg %+v : %s ", string(msg.Data), err)
+				}
+				for _, mg := range m {
+					var t lib.ClusterEvent
+					mesg, err := json.Marshal(mg[1])
+					if err != nil {
+						log.Warningf("Unable to marshal %+v : %s", mg[1], err)
+						continue
+					}
+					err = json.Unmarshal(mesg, &t)
+					if err != nil {
+						log.Warnf("Unable to unmarshall %+v : %s", string(mesg), err)
+						continue
+					}
+					t.Source = msg.Subject
+					if t.K8SMessage != nil {
+						t.Kind = "kubernetes"
+					} else if t.SyslogMessage != nil {
+						t.Kind = "syslog"
+					} else {
+						t.Kind = "unknown"
+					}
+					//log.Infof("%+v", t)
+					processMessage(t, nc)
+				}
+			case reflect.Map:
+				log.Debugf("Map received")
+			default:
+				log.Printf("Unknown type %T\n", v)
 			}
 		})
 	}

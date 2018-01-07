@@ -20,3 +20,12 @@ func MatchStringInList(list []string, str string) bool {
 	}
 	return false
 }
+
+func HasKey(m map[string]interface{}, str string) bool {
+	for k, _ := range m {
+		if k == str {
+			return true
+		}
+	}
+	return false
+}
