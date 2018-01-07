@@ -61,7 +61,7 @@ type TextFormatter struct {
 
 func (f *TextFormatter) init(entry *Entry) {
 	if entry.Logger != nil {
-		f.isTerminal = IsTerminal(entry.Logger.Out)
+		f.isTerminal = checkIfTerminal(entry.Logger.Out)
 	}
 }
 
