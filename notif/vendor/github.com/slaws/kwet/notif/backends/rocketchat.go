@@ -43,7 +43,7 @@ func (rc *RocketChat) GetName() string {
 // Send sends a notification
 func (rc *RocketChat) Send(message lib.ClusterEvent) error {
 	attach := Attachment{}
-	err := json.Unmarshal([]byte(message.Message.(string)), &attach)
+	err := json.Unmarshal([]byte(message.Message), &attach)
 	log.Infof("---> %+v", attach)
 	var smsg RcMsg
 	if err != nil || attach.Title == "" {
@@ -51,7 +51,7 @@ func (rc *RocketChat) Send(message lib.ClusterEvent) error {
 			Text: fmt.Sprintf("Notification from %s", message.Source),
 			Attachments: []Attachment{
 				Attachment{
-					Text: message.Message.(string),
+					Text: message.Message,
 				},
 			},
 		}

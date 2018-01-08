@@ -131,8 +131,10 @@ func messageHandler(msg *nats.Msg, provider backends.Notifier) {
 	err := json.Unmarshal(msg.Data, &smsg)
 	if err != nil || smsg.Source == "" || smsg.Message == "" {
 		err = provider.Send(lib.ClusterEvent{
-			Source:  "kwet-notif",
-			Message: fmt.Sprintf("Malformed message received.\n```%+v```", string(msg.Data)),
+			Source: "kwet-notif",
+			SyslogMessage: &lib.SyslogMessage{
+				Message: fmt.Sprintf("A malformed message was received.\n```%+v```", string(msg.Data)),
+			},
 		})
 		if err != nil {
 			log.Errorf("Error while sending notification : %s", err)
@@ -146,11 +148,11 @@ func messageHandler(msg *nats.Msg, provider backends.Notifier) {
 	}
 	log.Infof("value, %+v, %s", rule, smsg.Source)
 	var mesg map[string]interface{}
-	err = json.Unmarshal([]byte(smsg.Message.(string)), &mesg)
+	err = json.Unmarshal([]byte(smsg.Message), &mesg)
 	if err != nil {
 		log.Warnf("Error while processing message !")
 	} else {
-		data := smsg.Message.(string)
+		data := smsg.Message
 		if rule != nil && Variabilize(rule.Title, rule.Vars, data) != "" {
 			dataMsg := fmt.Sprintf(`{
 				"title": "%s",
