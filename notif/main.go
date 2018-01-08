@@ -137,7 +137,7 @@ func messageHandler(msg *nats.Msg, provider backends.Notifier) {
 	var smsg lib.ClusterEvent
 	log.Infof("msg : %s", string(msg.Data))
 	err := json.Unmarshal(msg.Data, &smsg)
-	if err != nil || smsg.Source == "" || smsg.Message == "" {
+	if err != nil || smsg.Source == "" || smsg.Kind == "" {
 		err = provider.Send(lib.ClusterEvent{
 			Source: "kwet-notif",
 			SyslogMessage: &lib.SyslogMessage{
@@ -149,18 +149,28 @@ func messageHandler(msg *nats.Msg, provider backends.Notifier) {
 		}
 		return
 	}
-	//rules, found := conf.Format[smsg.Source]
+
 	rule, err := backend.GetSingleNotifFormatRule(smsg.Source)
 	if err != nil {
-		log.Errorf("Error while retrieving rule for %s : %s", smsg.Source, err)
+		log.Debugf("No rule found for %s : %s", smsg.Source, err)
 	}
 	log.Infof("value, %+v, %s", rule, smsg.Source)
+	var data string
+	switch kind := smsg.Kind; kind {
+	case "kubernetes":
+		data = smsg.Log
+		smsg.SyslogMessage = &lib.SyslogMessage{
+			Message: data,
+		}
+	default:
+		data = smsg.Message
+	}
 	var mesg map[string]interface{}
-	err = json.Unmarshal([]byte(smsg.Message), &mesg)
+	err = json.Unmarshal([]byte(data), &mesg)
 	if err != nil {
 		log.Warnf("Error while processing message !")
 	} else {
-		data := smsg.Message
+		//data := smsg.Message
 		if rule != nil && Variabilize(rule.Title, rule.Vars, data) != "" {
 			dataMsg := fmt.Sprintf(`{
 				"title": "%s",
