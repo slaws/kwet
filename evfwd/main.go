@@ -74,7 +74,11 @@ func makeMessage(evt v1.Event) []byte {
 		return nil
 	}
 
-	message, err := json.Marshal(lib.ClusterEvent{Source: "kubernetes", Message: string(m), Tags: []string{"application", "kubernetes"}})
+	message, err := json.Marshal(lib.ClusterEvent{
+		Source: "kubernetes", 
+		SyslogMessage: &lib.SyslogMessage{
+			Message: string(m),
+		}, Tags: []string{"application", "kubernetes"}})
 	if err != nil {
 		log.Errorf("%s", err)
 		return nil

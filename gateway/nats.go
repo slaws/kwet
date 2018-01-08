@@ -26,7 +26,11 @@ func PostEvent(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("Error while reading body : %s", err)
 		return
 	}
-	msg, err := json.Marshal(lib.ClusterEvent{Source: vars["application"], Message: string(body), Tags: []string{"application", "gateway"}})
+	msg, err := json.Marshal(lib.ClusterEvent{
+		Source: vars["application"],
+		SyslogMessage: &lib.SyslogMessage{
+			Message: string(body),
+		}, Tags: []string{"application", "gateway"}})
 	err = nc.Conn.Publish(vars["application"], msg)
 	if err != nil {
 		log.Error(err)
