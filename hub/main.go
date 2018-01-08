@@ -119,8 +119,16 @@ func main() {
 	backendURL := pflag.StringArrayP("endpoint", "e", []string{"kwet-etcd-cluster-client:2379"}, "backend URL")
 	var natsURL string
 	pflag.StringVarP(&natsURL, "nats", "s", "", "NATS server URL")
+	logLevelOpt := pflag.StringP("log-level", "l", "info", "Log Level (panic, fatal, error, warn, info, debug)")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
+
+	logLevel, err := log.ParseLevel(*logLevelOpt)
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+	log.SetLevel(logLevel)
 
 	backend, err = backends.SetupBackend(backends.BackendConfig{Type: *backendType, Endpoint: *backendURL})
 	if err != nil {
@@ -200,6 +208,16 @@ func main() {
 				}
 			case reflect.Map:
 				log.Debugf("Map received")
+				log.Debugf("%+v", v)
+				var t lib.ClusterEvent
+				err = json.Unmarshal(msg.Data, &t)
+				if err != nil {
+					log.Warnf("Unable to unmarshall %+v : %s", string(msg.Data), err)
+				} else {
+					t.Kind = "syslog"
+					t.Source = msg.Subject
+					processMessage(t, nc)
+				}
 			default:
 				log.Printf("Unknown type %T\n", v)
 			}

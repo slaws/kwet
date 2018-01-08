@@ -36,12 +36,20 @@ func main() {
 	var natsURL string
 	var err error
 	notifyQueue := pflag.StringP("queue", "q", "notify", "Queue to subscribe to")
+	logLevelOpt := pflag.StringP("log-level", "l", "info", "Log Level (panic, fatal, error, warn, info, debug)")
 	backendType := pflag.StringP("backend", "b", "etcd", "Backend type")
 	backendURL := pflag.StringArrayP("endpoint", "e", []string{"kwet-etcd-cluster-client:2379"}, "backend URL")
 	pflag.StringVarP(&natsURL, "nats", "s", "", "NATS server URL")
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
+
+	logLevel, err := log.ParseLevel(*logLevelOpt)
+	if err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
+	log.SetLevel(logLevel)
 
 	backend, err = store.SetupBackend(store.BackendConfig{Type: *backendType, Endpoint: *backendURL})
 	if err != nil {
