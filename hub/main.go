@@ -155,7 +155,7 @@ func main() {
 		}
 	}
 	if natsURL != "" {
-		err = nc.Connect(natsURL)
+		err = nc.Connect(natsURL, nats.Name("kwet-hub"))
 		if err != nil {
 			log.Error(err)
 		}
@@ -168,7 +168,7 @@ func main() {
 	}
 
 	for _, queue := range listenQueues {
-		(*nc.Conn).Subscribe(queue, func(msg *nats.Msg) {
+		(*nc.Conn).QueueSubscribe(queue, "kwet-hub-group", func(msg *nats.Msg) {
 			//log.Infof("Message for : %s", msg.Subject)
 			var raw interface{}
 			err := json.Unmarshal(msg.Data, &raw)

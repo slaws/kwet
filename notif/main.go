@@ -68,7 +68,7 @@ func main() {
 		}
 	}
 	if natsURL != "" {
-		err = nc.Connect(natsURL, nats.Name("Notifier"))
+		err = nc.Connect(natsURL, nats.Name("kwet-notifier"))
 		if err != nil {
 			log.Error(err)
 		}

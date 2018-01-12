@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
 	"github.com/slaws/kwet/lib"
 	"github.com/slaws/kwet/lib/backends"
@@ -44,7 +45,7 @@ func main() {
 		}
 	}
 	if natsURL != "" {
-		err = nc.Connect(natsURL)
+		err = nc.Connect(natsURL, nats.Name("kwet-gateway"))
 		if err != nil {
 			log.Error(err)
 		}

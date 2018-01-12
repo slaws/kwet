@@ -19,6 +19,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/api"
 
+	nats "github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
 	"github.com/slaws/kwet/lib"
 )
@@ -75,7 +76,7 @@ func makeMessage(evt v1.Event) []byte {
 	}
 
 	message, err := json.Marshal(lib.ClusterEvent{
-		Source: "kubernetes", 
+		Source: "kubernetes",
 		SyslogMessage: &lib.SyslogMessage{
 			Message: string(m),
 		}, Tags: []string{"application", "kubernetes"}})
@@ -100,7 +101,7 @@ func main() {
 
 	log.Info("Starting kwet Event Forwarder...")
 	// "nats://nats.svc.k8s:4222"
-	nc, err := lib.NatsConnect(*natsURL)
+	nc, err := lib.NatsConnect(*natsURL, nats.Name("kwet-evfwd"))
 	if err != nil {
 		log.Fatal(err)
 	}
