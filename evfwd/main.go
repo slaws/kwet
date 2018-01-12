@@ -101,7 +101,7 @@ func main() {
 
 	log.Info("Starting kwet Event Forwarder...")
 	// "nats://nats.svc.k8s:4222"
-	nc, err := lib.NatsConnect(*natsURL, nats.Name("kwet-evfwd"))
+	nc, err := lib.NatsConnect(*natsURL, &nats.Name("kwet-evfwd"))
 	if err != nil {
 		log.Fatal(err)
 	}
